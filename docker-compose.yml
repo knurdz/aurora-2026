@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - neo4j
+      - chromadb
+      - ollama
+    volumes:
+      - ./backend:/app
+    networks:
+      - verischolar_net
+
+  neo4j:
+    image: neo4j:5.18
+    ports:
+      - "7474:7474"   # browser UI
+      - "7687:7687"   # bolt protocol
+    environment:
+      NEO4J_AUTH: neo4j/verischolar_secret
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - verischolar_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - verischolar_net
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - verischolar_net
+
+volumes:
+  neo4j_data:
+  chroma_data:
+  ollama_models:
+
+networks:
+  verischolar_net:
+    driver: bridge
