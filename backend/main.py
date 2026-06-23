@@ -1,9 +1,11 @@
+import hashlib
 from fastapi import FastAPI, UploadFile, File
 from contextlib import asynccontextmanager
 from core.config import settings
 from core.langgraph_app import verischolar_graph, DocumentState
 from neo4j import GraphDatabase
 import chromadb
+from chromadb.config import Settings as ChromaSettings
 
 neo4j_driver = None
 chroma_client = None
@@ -17,7 +19,8 @@ async def lifespan(app: FastAPI):
     )
     chroma_client = chromadb.HttpClient(
         host=settings.chroma_host,
-        port=settings.chroma_port
+        port=settings.chroma_port,
+        settings=ChromaSettings(anonymized_telemetry=False),
     )
     yield
     neo4j_driver.close()
@@ -35,10 +38,15 @@ async def health():
 
 @app.post("/analyze")
 async def analyze_document(file: UploadFile = File(...)):
-    # Placeholder — Phase 2 will populate this
     content = await file.read()
+    doc_id = hashlib.sha256(content).hexdigest()[:16]
+
     initial_state: DocumentState = {
-        "document_text": content.decode("utf-8", errors="replace"),
+        "filename": file.filename,
+        "file_bytes": content,
+        "doc_id": doc_id,
+        "document_text": "",
+        "pages": [],
         "claims": [],
         "citations": [],
         "graph_results": None,
@@ -47,4 +55,10 @@ async def analyze_document(file: UploadFile = File(...)):
         "audit_report": None,
     }
     result = verischolar_graph.invoke(initial_state)
-    return {"status": "processed", "claims_found": len(result["claims"])}
+    return {
+        "status": "processed",
+        "doc_id": doc_id,
+        "pages_parsed": len(result["pages"]),
+        "claims_found": len(result["claims"]),
+        "citations_found": len(result["citations"]),
+    }
