@@ -6,12 +6,6 @@ from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_ci
 from ingestion.embeddings import embed_uncited_claims
 from core.config import settings
 
-from ingestion.parser import parse_document
-from ingestion.citation_detector import detect_citations
-from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
-from ingestion.embeddings import embed_uncited_claims
-from core.config import settings
-
 class DocumentState(TypedDict):
     filename: str
     file_bytes: bytes
@@ -22,7 +16,7 @@ class DocumentState(TypedDict):
     citations: List[dict]
     graph_results: Optional[dict]
     fraud_results: Optional[dict]
-    integrity_score: Optional[float]
+    integrity_score: Optional[dict]
     audit_report: Optional[str]
 
 def claim_isolation_agent(state: DocumentState) -> DocumentState:
@@ -127,7 +121,37 @@ def fraud_detection_agent(state: DocumentState) -> DocumentState:
     return state
 
 def consensus_agent(state: DocumentState) -> DocumentState:
-    # Phase 5: compute score, generate report
+    """
+    Phase 5: Integrity scoring + audit report generation.
+
+    Consumes all prior agent outputs (graph_results, fraud_results, claims)
+    and produces:
+      - integrity_score: dict with score (0.0–1.0), verdict, per-signal breakdown
+      - audit_report:    full Markdown report string for analyst consumption
+    """
+    from core.integrity_scorer import compute_integrity_score
+    from core.audit_reporter import generate_audit_report
+
+    claims = state.get("claims", [])
+    graph_results = state.get("graph_results")
+    fraud_results = state.get("fraud_results")
+
+    score_result = compute_integrity_score(
+        claims=claims,
+        graph_results=graph_results,
+        fraud_results=fraud_results,
+    )
+
+    audit_report = generate_audit_report(
+        score_result=score_result,
+        claims=claims,
+        graph_results=graph_results,
+        fraud_results=fraud_results,
+        filename=state.get("filename", "unknown"),
+    )
+
+    state["integrity_score"] = score_result
+    state["audit_report"] = audit_report
     return state
 
 def build_graph() -> StateGraph:

@@ -54,11 +54,40 @@ async def analyze_document(file: UploadFile = File(...)):
         "integrity_score": None,
         "audit_report": None,
     }
+
     result = verischolar_graph.invoke(initial_state)
+
+    integrity = result.get("integrity_score") or {}
+    graph = result.get("graph_results") or {}
+    fraud = result.get("fraud_results") or {}
+    community = graph.get("community_analysis", {})
+
     return {
         "status": "processed",
         "doc_id": doc_id,
+
+        # Document stats
         "pages_parsed": len(result["pages"]),
         "claims_found": len(result["claims"]),
         "citations_found": len(result["citations"]),
+
+        # integrity scorecard
+        "integrity_score": integrity.get("score"),
+        "integrity_verdict": integrity.get("verdict"),
+        "score_breakdown": integrity.get("breakdown", {}),
+
+        # fraud summary
+        "fraud_risk": fraud.get("overall_fraud_risk"),
+        "grim_failures": fraud.get("grim", {}).get("failure_count", 0),
+        "p_curve_verdict": fraud.get("p_curve", {}).get("verdict"),
+        "funding_conflicts": fraud.get("funding_conflicts", {}).get("conflict_count", 0),
+
+        # citation graph summary
+        "citations_resolved": graph.get("resolved_count", 0),
+        "retracted_papers": community.get("retracted_papers", []),
+        "cartel_risk": community.get("cartel_risk"),
+        "suspicious_clusters": len(community.get("suspicious_clusters", [])),
+
+        # Full audit report (Markdown)
+        "audit_report": result.get("audit_report"),
     }

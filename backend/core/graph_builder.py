@@ -7,13 +7,11 @@ from typing import List, Dict, Any, Optional
 
 def build_citation_graph(citations: List[dict]) -> Dict[str, Any]:
     """
-    Main Phase 3 entry point.
-
     Flow:
-      citations (from Phase 2) → resolve DOIs via CrossRef
-                               → enrich with Semantic Scholar
-                               → MERGE into Neo4j graph
-                               → write CITES edges between resolved papers
+      citations → resolve DOIs via CrossRef
+                → enrich with Semantic Scholar
+                → MERGE into Neo4j graph
+                → write CITES edges between resolved papers
 
     Returns graph_results dict that lands in DocumentState.
     """
@@ -61,17 +59,33 @@ def build_citation_graph(citations: List[dict]) -> Dict[str, Any]:
 def _resolve_citation(citation: dict) -> Optional[dict]:
     """
     Resolution order:
-      1. Direct DOI lookup via CrossRef (fast, exact)
-      2. Full-text query search via CrossRef (fuzzy fallback)
-    Returns None if both strategies fail.
+      1. DOI-type citations: value field holds the DOI directly
+      2. Explicit doi field (future-proofing)
+      3. APA/numbered citations: fuzzy CrossRef title/author search
     """
+    # DOI citations carry the DOI in the value field
+    if citation.get("type") == "doi":
+        doi = citation.get("value", "")
+        if doi:
+            paper = resolve_doi(doi)
+            if paper:
+                return paper
+
+    # Explicit doi field (never set by current detector, kept for safety)
     doi = citation.get("doi")
     if doi:
         paper = resolve_doi(doi)
         if paper:
             return paper
 
-    raw = citation.get("raw_text") or citation.get("text", "")
+    # APA / narrative / numbered → CrossRef text search
+    # Prefer "raw" (full original string), fall back to "value", then legacy keys
+    raw = (
+        citation.get("raw")
+        or citation.get("value")
+        or citation.get("raw_text")
+        or citation.get("text", "")
+    )
     if raw:
         results = search_by_query(raw, limit=1)
         if results:
