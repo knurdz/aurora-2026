@@ -1,5 +1,10 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List, Optional
+from ingestion.parser import parse_document
+from ingestion.citation_detector import detect_citations
+from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
+from ingestion.embeddings import embed_uncited_claims
+from core.config import settings
 
 from ingestion.parser import parse_document
 from ingestion.citation_detector import detect_citations
@@ -56,11 +61,69 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
     return state
 
 def citation_graph_agent(state: DocumentState) -> DocumentState:
-    # Phase 3: build Neo4j citation graph, detect cartels
+    from core.graph_builder import build_citation_graph
+    from core.community_detector import detect_citation_communities
+
+    citations = state.get("citations", [])
+
+    if not citations:
+        state["graph_results"] = {
+            "resolved_count": 0,
+            "failed_count": 0,
+            "failed_citations": [],
+            "papers": [],
+            "community_analysis": {
+                "communities": [],
+                "suspicious_clusters": [],
+                "retracted_papers": [],
+                "cartel_risk": "no_citations",
+                "modularity_score": 0.0,
+            },
+        }
+        return state
+
+    graph_data = build_citation_graph(citations)
+
+    doi_list = [p["doi"] for p in graph_data.get("papers", []) if p.get("doi")]
+    community_data = detect_citation_communities(doi_list)
+
+    state["graph_results"] = {
+        **graph_data,
+        "community_analysis": community_data,
+    }
     return state
 
 def fraud_detection_agent(state: DocumentState) -> DocumentState:
-    # Phase 4: p-curve, GRIM, statistical checks
+    """
+    Phase 4: Statistical fraud detection.
+
+    Runs over document_text + claims to extract statistical values, then
+    applies four checks: GRIM, p-curve, small-sample, funding conflict.
+    Results stored in DocumentState.fraud_results.
+    """
+    from core.stats_extractor import extract_stats_from_claims
+    from core.fraud_detector import run_fraud_detection
+
+    claims = state.get("claims", [])
+    document_text = state.get("document_text", "")
+    graph_results = state.get("graph_results")
+
+    # Extract all statistical values from the document
+    stats = extract_stats_from_claims(
+        claims=claims,
+        page_text=document_text,
+        ollama_host=settings.ollama_host,
+        ollama_model=settings.ollama_model,
+    )
+
+    # Run the four fraud detection checks
+    fraud_results = run_fraud_detection(
+        stats=stats,
+        graph_results=graph_results,
+        claims=claims,
+    )
+
+    state["fraud_results"] = fraud_results
     return state
 
 def consensus_agent(state: DocumentState) -> DocumentState:
