@@ -1,89 +1,87 @@
 # Verischolar
 
-Verischolar is a research-integrity toolkit that ingests scholarly metadata and text, builds citation/claim graphs, and runs heuristics and analysis to detect questionable or fraudulent patterns.
+Verischolar is a research-integrity toolkit that runs a multi-stage pipeline to parse scholarly documents, extract claims and citations, build a citation graph, embed uncited claims, and run statistical and heuristic detectors to produce an integrity score and audit report.
 
-**Repository layout**
+Repository layout
 
-- [backend/](backend/): Python backend, ingestion pipeline, and core analysis modules (community detector, fraud detector, graph builder, etc.).
-- [frontend/](frontend/): Frontend application (placeholder — add framework-specific docs if present).
-- [docker-compose.yml](docker-compose.yml): Development compose config used to run services together.
+- `backend/`: Python backend, ingestion pipeline, and core analysis modules.
+- `frontend/`: Frontend app (placeholder).
+- `docker-compose.yml`: Development compose configuration.
 
-**Features**
+Summary of functionality
 
-- Ingests publication metadata and content from external sources.
-- Builds citation and claim graphs for analysis.
-- Heuristics and ML-based detectors for suspicious citation/claim behavior.
-- Modular ingestion and analysis components to extend with new sources and detectors.
+- Document parsing: PDF (`PyMuPDF`) and DOCX (`python-docx`) parsing into page-like text chunks (`backend/ingestion/parser.py`).
+- Citation detection: APA parenthetical and narrative detection, numbered citations, and DOI extraction (`backend/ingestion/citation_detector.py`).
+- Claim extraction: LLM-based claim classification via Ollama HTTP API with boilerplate heuristics (`backend/ingestion/claim_classifier.py`).
+- Embeddings: Sentence-transformers embeddings (`all-MiniLM-L6-v2`) stored in ChromaDB via HTTP client for uncited claim search (`backend/ingestion/embeddings.py`).
+- Graph building: Resolve citations (DOI/CrossRef), enrich via Semantic Scholar, and persist Paper/Author/Journal/Funder nodes and CITES edges to Neo4j (`backend/core/graph_builder.py`).
+- Community & fraud analysis: Community detection and four statistical checks (GRIM, p-curve, small-sample, funding conflict) aggregated into `fraud_results` (`backend/core/community_detector.py`, `backend/core/fraud_detector.py`).
+- Scoring & reporting: integrity score computation and Markdown audit report generation (`backend/core/integrity_scorer.py`, `backend/core/audit_reporter.py`).
 
-**Technologies used**
+API endpoints
 
-- Language: Python 3.10+
-- Web framework: (see `backend/main.py` for the chosen server framework)
-- Containerization: Docker + Docker Compose
-- Data processing: pandas / numpy (check `backend/requirements.txt`)
-- External integrations: Crossref, Semantic Scholar (clients in `backend/core/`)
+- `GET /health`: service health and connectivity summary (Neo4j, ChromaDB, Ollama model).
+- `POST /analyze`: upload a PDF or DOCX file to run the full pipeline; returns a JSON summary and `audit_report` (Markdown).
 
-If you'd like me to list concrete package names and versions, I can extract them from [backend/requirements.txt](backend/requirements.txt).
+Example usage
 
-Getting started
----------------
-
-Prerequisites
-
-- Docker & Docker Compose (for containerized development)
-- Python 3.10+ (for local development)
-- Git
-
-Quickstart — Docker Compose (recommended for development)
-
-1. Build and start services:
+Start services (recommended via Docker Compose):
 
 ```bash
 docker compose up --build
 ```
 
-2. Inspect service logs and ports in `docker-compose.yml`.
-
-3. By default, API endpoints and ports are defined in [docker-compose.yml](docker-compose.yml) and the backend service; open those files to confirm ports and environment variables.
-
-Run backend locally (without Docker)
-
-1. Create and activate a virtual environment:
+Upload a file to analyze:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+curl -F "file=@./paper.pdf" http://localhost:8000/analyze
 ```
 
-2. Install dependencies:
+Typical response fields
 
-```bash
-pip install -r backend/requirements.txt
-```
+- `doc_id`, `pages_parsed`, `claims_found`, `citations_found`
+- `integrity_score` (score, verdict, breakdown)
+- `fraud_risk` and sub-results (`grim`, `p_curve`, `sample_size_flags`, `funding_conflicts`)
+- `citations_resolved`, `cartel_risk`, `suspicious_clusters`, `retracted_papers`
+- `audit_report` (Markdown string)
 
-3. Run the backend server:
+Configuration (environment variables)
 
-```bash
-python backend/main.py
-```
+- See `backend/core/config.py` for concrete config names. Common values to set:
+	- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
+	- `CHROMA_HOST`, `CHROMA_PORT`
+	- `OLLAMA_HOST`, `OLLAMA_MODEL`
+	- API keys for CrossRef / Semantic Scholar if required
 
-4. Confirm the server is running by checking logs or visiting the configured port (see [backend/main.py](backend/main.py)).
+Primary technologies and libraries
 
-Configuration & environment variables
+- Python 3.10+
+- FastAPI (HTTP API)
+- PyMuPDF (`fitz`) and python-docx (parsing)
+- chromadb (ChromaDB HTTP client)
+- sentence-transformers (`all-MiniLM-L6-v2`) for embeddings
+- neo4j Python driver for graph storage
+- scipy for statistical tests
+- httpx for HTTP calls to Ollama and other services
 
-- Check `docker-compose.yml` and the backend code for environment variables used by services (API keys, DB URLs, ports).
-- Common variables you may need to set:
-	- `CROSSREF_API_KEY` — Crossref access (if required)
-	- `SEMANTIC_SCHOLAR_API_KEY` — Semantic Scholar access (if used)
-	- `DATABASE_URL` — DB connection string (if persistence is configured)
+Important notes and limitations
 
-Default ports and endpoints
+- DOCX documents are chunked into pseudo-pages (character-based) which can affect proximity-based heuristics.
+- Claim extraction depends on the configured Ollama model and prompt; accuracy varies with model choice and prompt tuning.
+- Citation resolution prefers DOI matches; fuzzy CrossRef searches may produce imperfect matches.
+- Fraud detection is statistical/heuristic and intended to flag items for manual review, not to produce definitive legal conclusions.
 
-- Exact ports and exposed endpoints are declared in [docker-compose.yml](docker-compose.yml) and the backend entrypoint [backend/main.py](backend/main.py).
-- Core application modules live in [backend/core/](backend/core/) (for example, [backend/core/langgraph_app.py](backend/core/langgraph_app.py), [backend/core/fraud_detector.py](backend/core/fraud_detector.py)).
+Where to look in the code
 
-How to use the backend (overview)
+- Backend entry: `backend/main.py`
+- Pipeline orchestration: `backend/core/langgraph_app.py`
+- Parsers & detectors: `backend/ingestion/` (`parser.py`, `citation_detector.py`, `claim_classifier.py`, `embeddings.py`)
+- Graph & enrichment: `backend/core/graph_builder.py`, `backend/core/crossref_client.py`, `backend/core/semantic_scholar_client.py`
 
-1. Ingest data: Use the ingestion modules in [backend/ingestion/](backend/ingestion/) to parse sources and produce intermediate artifacts.
-2. Build graphs: The graph builder constructs citation/claim graphs from ingested records.
-3. Analyze: Run detectors in `backend/core/` (fraud detector, community detector) against the built graphs.
+Next steps I can take
+
+- Extract exact dependency versions from `backend/requirements.txt` and add them here.
+- Add example API request/response snippets and an example audit report.
+- Create a `LICENSE` file (MIT) and a minimal GitHub Actions CI workflow.
+
+If you want the README adjusted further to emphasize any changed files or new behavior, tell me which areas to expand.
