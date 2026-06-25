@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, List, Optional
+from typing import TypedDict, List, Optional, Callable
 from ingestion.parser import parse_document
 from ingestion.citation_detector import detect_citations
 from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
@@ -8,6 +8,20 @@ from core.config import settings
 from core.llm_client import get_llm_client
 
 _llm = get_llm_client()
+
+# Progress callbacks: doc_id -> callable(message: str)
+_progress_callbacks: dict[str, Callable] = {}
+
+def register_progress_callback(doc_id: str, callback: Callable):
+    _progress_callbacks[doc_id] = callback
+
+def unregister_progress_callback(doc_id: str):
+    _progress_callbacks.pop(doc_id, None)
+
+def _emit(doc_id: str, message: str):
+    cb = _progress_callbacks.get(doc_id)
+    if cb:
+        cb(message)
 
 class DocumentState(TypedDict):
     filename: str
@@ -23,12 +37,16 @@ class DocumentState(TypedDict):
     audit_report: Optional[str]
 
 def claim_isolation_agent(state: DocumentState) -> DocumentState:
+    doc_id = state["doc_id"]
+    _emit(doc_id, "📄 Parsing document pages...")
     pages = parse_document(state["filename"], state["file_bytes"])
+    _emit(doc_id, f"✅ Parsed {len(pages)} pages")
 
     all_claims: List[dict] = []
     all_citations: List[dict] = []
     uncited_for_embedding: List[dict] = []
 
+    _emit(doc_id, f"🧠 Extracting claims with LLM ({len(pages)} pages to process)...")
     for page in pages:
         page_num = page["page_number"]
         page_text = page["text"]
@@ -38,9 +56,7 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
             c["page_number"] = page_num
         all_citations.extend(page_citations)
 
-        extracted = classify_page_claims(
-            page_text, llm_client=_llm
-        )
+        extracted = classify_page_claims(page_text, llm_client=_llm)
         for claim in extracted:
             has_citation = claim_has_nearby_citation(claim["text"], page_text, page_citations)
             claim["page_number"] = page_num
@@ -49,7 +65,12 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
             if not has_citation:
                 uncited_for_embedding.append({"text": claim["text"], "page_number": page_num})
 
+        _emit(doc_id, f"  → Page {page_num}: {len(extracted)} claims, {len(page_citations)} citations detected")
+
+    _emit(doc_id, f"💾 Embedding {len(uncited_for_embedding)} uncited claims into vector store...")
     embed_uncited_claims(state["doc_id"], uncited_for_embedding)
+
+    _emit(doc_id, f"✅ Phase 1 complete — {len(all_claims)} total claims, {len(all_citations)} citations found")
 
     state["pages"] = pages
     state["document_text"] = "\n\n".join(p["text"] for p in pages)
@@ -61,9 +82,11 @@ def citation_graph_agent(state: DocumentState) -> DocumentState:
     from core.graph_builder import build_citation_graph
     from core.community_detector import detect_citation_communities
 
+    doc_id = state["doc_id"]
     citations = state.get("citations", [])
 
     if not citations:
+        _emit(doc_id, "⚠️  No citations found — skipping citation graph phase")
         state["graph_results"] = {
             "resolved_count": 0,
             "failed_count": 0,
@@ -79,60 +102,70 @@ def citation_graph_agent(state: DocumentState) -> DocumentState:
         }
         return state
 
+    _emit(doc_id, f"🔗 Resolving {len(citations)} citations via CrossRef & Semantic Scholar...")
     graph_data = build_citation_graph(citations)
+    _emit(doc_id, f"  → Resolved {graph_data.get('resolved_count', 0)}, failed {graph_data.get('failed_count', 0)}")
 
     doi_list = [p["doi"] for p in graph_data.get("papers", []) if p.get("doi")]
+    _emit(doc_id, f"🕸️  Running Louvain community detection on {len(doi_list)} papers...")
     community_data = detect_citation_communities(doi_list)
 
-    state["graph_results"] = {
-        **graph_data,
-        "community_analysis": community_data,
-    }
+    retracted = community_data.get("retracted_papers", [])
+    cartels = community_data.get("suspicious_clusters", [])
+    if retracted:
+        _emit(doc_id, f"  ⚠️  {len(retracted)} retracted paper(s) detected in citations!")
+    if cartels:
+        _emit(doc_id, f"  ⚠️  {len(cartels)} suspicious citation cluster(s) found")
+
+    _emit(doc_id, f"✅ Phase 2 complete — citation graph built, cartel risk: {community_data.get('cartel_risk', 'none')}")
+
+    state["graph_results"] = {**graph_data, "community_analysis": community_data}
     return state
 
 def fraud_detection_agent(state: DocumentState) -> DocumentState:
-    """
-    Phase 4: Statistical fraud detection.
-
-    Runs over document_text + claims to extract statistical values, then
-    applies four checks: GRIM, p-curve, small-sample, funding conflict.
-    Results stored in DocumentState.fraud_results.
-    """
+    """Phase 4: Statistical fraud detection."""
     from core.stats_extractor import extract_stats_from_claims
     from core.fraud_detector import run_fraud_detection
 
+    doc_id = state["doc_id"]
     claims = state.get("claims", [])
     document_text = state.get("document_text", "")
     graph_results = state.get("graph_results")
 
-    # Extract all statistical values from the document
+    _emit(doc_id, "📊 Extracting statistical values (p-values, means, sample sizes)...")
     stats = extract_stats_from_claims(
         claims=claims,
         page_text=document_text,
         llm_client=_llm,
     )
+    _emit(doc_id, f"  → Found {len(stats.get('p_values', []))} p-values, "
+                  f"{len(stats.get('sample_sizes', []))} sample sizes, "
+                  f"{len(stats.get('means', []))} means")
 
-    # Run the four fraud detection checks
+    _emit(doc_id, "🔬 Running GRIM test on reported means...")
+    _emit(doc_id, "📉 Analysing p-curve for p-hacking signals...")
+    _emit(doc_id, "👥 Checking sample sizes for underpowered studies...")
+    _emit(doc_id, "💰 Scanning funders for conflict-of-interest keywords...")
+
     fraud_results = run_fraud_detection(
         stats=stats,
         graph_results=graph_results,
         claims=claims,
     )
 
+    risk = fraud_results.get("overall_fraud_risk", "unknown")
+    _emit(doc_id, f"✅ Phase 3 complete — overall fraud risk: {risk.upper()}")
+
     state["fraud_results"] = fraud_results
     return state
 
 def consensus_agent(state: DocumentState) -> DocumentState:
-    """
-    Phase 5: Integrity scoring + audit report generation.
-
-    Consumes all prior agent outputs (graph_results, fraud_results, claims)
-    and produces:
-      - integrity_score: dict with score (0.0–1.0), verdict, per-signal breakdown
-      - audit_report:    full Markdown report string for analyst consumption
-    """
+    """Phase 5: Integrity scoring + audit report generation."""
     from core.integrity_scorer import compute_integrity_score
     from core.audit_reporter import generate_audit_report
+
+    doc_id = state["doc_id"]
+    _emit(doc_id, "🏆 Computing weighted integrity score...")
 
     claims = state.get("claims", [])
     graph_results = state.get("graph_results")
@@ -144,6 +177,11 @@ def consensus_agent(state: DocumentState) -> DocumentState:
         fraud_results=fraud_results,
     )
 
+    score = score_result.get("score", 0)
+    verdict = score_result.get("verdict", "unknown")
+    _emit(doc_id, f"  → Score: {score:.2f}/1.00 — Verdict: {verdict}")
+
+    _emit(doc_id, "📝 Generating Markdown audit report...")
     audit_report = generate_audit_report(
         score_result=score_result,
         claims=claims,
@@ -151,6 +189,8 @@ def consensus_agent(state: DocumentState) -> DocumentState:
         fraud_results=fraud_results,
         filename=state.get("filename", "unknown"),
     )
+
+    _emit(doc_id, "✅ Phase 4 complete — audit report ready")
 
     state["integrity_score"] = score_result
     state["audit_report"] = audit_report
@@ -166,7 +206,6 @@ def build_graph() -> StateGraph:
 
     graph.set_entry_point("claim_isolation")
 
-    # citation_graph and fraud_detection run in parallel after claim isolation
     graph.add_edge("claim_isolation", "citation_graph")
     graph.add_edge("citation_graph", "fraud_detection")
     graph.add_edge("fraud_detection", "consensus")

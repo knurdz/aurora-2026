@@ -25,7 +25,7 @@ export default function Home() {
     try {
       const data = await analyzeDocument(file);
       if (data.doc_id) {
-        router.push(`/report/${data.doc_id}`);
+        router.push(`/analyze/${data.doc_id}`);
       }
     } catch (err) {
       console.error(err);

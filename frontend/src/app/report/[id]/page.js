@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import Navbar from '../../../components/Navbar';
 import { FileText, Download, ShieldCheck, ShieldAlert } from 'lucide-react';
@@ -8,13 +8,18 @@ import { getAnalysis } from '../../../lib/api';
 
 export default function ReportPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        setData(await getAnalysis(id));
+        const res = await getAnalysis(id);
+        setData(res);
+        if (res && res.status === 'processing') {
+          router.replace(`/analyze/${id}`);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -22,10 +27,11 @@ export default function ReportPage() {
       }
     }
     fetchData();
-  }, [id]);
+  }, [id, router]);
 
   if (loading) return <><Navbar /><main><p>Loading report...</p></main></>;
   if (!data) return <><Navbar /><main><p>Report not found.</p></main></>;
+  if (data.status === 'processing') return <><Navbar /><main><p>Analysis in progress. Redirecting...</p></main></>;
 
   const score = data.integrity_score || 0;
   const isCritical = score < 0.55;
