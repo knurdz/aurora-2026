@@ -48,24 +48,20 @@ def _normalize_claim(item) -> Dict:
     return {"text": str(item).strip()}
 
 
-def classify_page_claims(page_text: str, model: str, host: str, timeout: float = 300.0) -> List[Dict]:
-    """Direct HTTP call to Ollama — bypasses LangChain's LLM wrapper to
-    avoid the langchain-core version pin conflict from Phase 1."""
+from core.llm_client import LLMClient
+
+def classify_page_claims(page_text: str, llm_client: LLMClient, timeout: float = 300.0) -> List[Dict]:
+    """Uses the unified LLMClient to extract claims."""
     if is_boilerplate(page_text):
         return []
 
-    response = httpx.post(
-        f"{host}/api/generate",
-        json={
-            "model": model,
-            "prompt": _CLASSIFY_PROMPT.format(page_text=page_text),
-            "format": "json",
-            "stream": False,
-        },
+    raw_output = llm_client.generate(
+        prompt=_CLASSIFY_PROMPT.format(page_text=page_text),
+        temperature=0.1,
+        max_tokens=2048,
+        json_mode=True,
         timeout=timeout,
     )
-    response.raise_for_status()
-    raw_output = response.json().get("response", "{}")
 
     try:
         raw_claims = json.loads(raw_output).get("claims", [])

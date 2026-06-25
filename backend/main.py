@@ -1,6 +1,9 @@
 import hashlib
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+
+_analysis_store = {}
 from core.config import settings
 from core.langgraph_app import verischolar_graph, DocumentState
 from neo4j import GraphDatabase
@@ -27,14 +30,49 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="VeriScholar API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
         "neo4j": "connected" if neo4j_driver else "disconnected",
         "chroma": "connected" if chroma_client else "disconnected",
-        "ollama_model": settings.ollama_model,
+        "llm_provider": settings.llm_provider,
+        "llm_model": settings.openai_model if settings.llm_provider == "openai" else settings.ollama_model,
     }
+
+@app.get("/config")
+async def get_config():
+    return {
+        "llm_provider": settings.llm_provider,
+        "model_name": settings.openai_model if settings.llm_provider == "openai" else settings.ollama_model,
+        "endpoint": settings.openai_endpoint if settings.llm_provider == "openai" else settings.ollama_host,
+    }
+
+@app.get("/history")
+async def get_history():
+    history_list = []
+    for doc_id, res in _analysis_store.items():
+        history_list.append({
+            "doc_id": doc_id,
+            "filename": res.get("filename", "Unknown"),
+            "integrity_score": res.get("integrity_score"),
+            "integrity_verdict": res.get("integrity_verdict"),
+            "timestamp": res.get("timestamp")
+        })
+    return {"history": history_list[::-1][:50]}
+
+@app.get("/analysis/{doc_id}")
+async def get_analysis(doc_id: str):
+    if doc_id not in _analysis_store:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return _analysis_store[doc_id]
 
 @app.post("/analyze")
 async def analyze_document(file: UploadFile = File(...)):
@@ -62,9 +100,13 @@ async def analyze_document(file: UploadFile = File(...)):
     fraud = result.get("fraud_results") or {}
     community = graph.get("community_analysis", {})
 
-    return {
+    import datetime
+    
+    analysis_result = {
         "status": "processed",
         "doc_id": doc_id,
+        "filename": file.filename,
+        "timestamp": datetime.datetime.now().isoformat(),
 
         # Document stats
         "pages_parsed": len(result["pages"]),
@@ -91,3 +133,6 @@ async def analyze_document(file: UploadFile = File(...)):
         # Full audit report (Markdown)
         "audit_report": result.get("audit_report"),
     }
+    
+    _analysis_store[doc_id] = analysis_result
+    return analysis_result

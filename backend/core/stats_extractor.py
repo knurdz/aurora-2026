@@ -15,6 +15,7 @@ import re
 import json
 import httpx
 from typing import List, Dict, Any
+from core.llm_client import LLMClient
 
 # ---------------------------------------------------------------------------
 # Compiled regex patterns
@@ -83,8 +84,7 @@ Text:
 def extract_stats_from_claims(
     claims: List[Dict],
     page_text: str,
-    ollama_host: str,
-    ollama_model: str,
+    llm_client: LLMClient,
 ) -> Dict[str, Any]:
     """
     Two-pass extraction over both the structured claims list and the raw
@@ -109,7 +109,7 @@ def extract_stats_from_claims(
 
     # Pass 2 — LLM fallback (only if regex found very little)
     if len(p_values) == 0 and len(sample_sizes) == 0:
-        llm_stats = _llm_extract(full_text, ollama_host, ollama_model)
+        llm_stats = _llm_extract(full_text, llm_client)
         p_values = p_values or llm_stats.get("p_values", [])
         sample_sizes = sample_sizes or llm_stats.get("sample_sizes", [])
         means = means or [
@@ -195,20 +195,16 @@ def _extract_effect_sizes(text: str) -> List[Dict]:
 # LLM fallback
 # ---------------------------------------------------------------------------
 
-def _llm_extract(text: str, host: str, model: str, timeout: float = 120.0) -> Dict:
+def _llm_extract(text: str, llm_client: LLMClient, timeout: float = 120.0) -> Dict:
     try:
-        r = httpx.post(
-            f"{host}/api/generate",
-            json={
-                "model": model,
-                "prompt": _LLM_EXTRACT_PROMPT.format(text=text[:4000]),
-                "format": "json",
-                "stream": False,
-            },
+        raw_output = llm_client.generate(
+            prompt=_LLM_EXTRACT_PROMPT.format(text=text[:4000]),
+            temperature=0.1,
+            max_tokens=2048,
+            json_mode=True,
             timeout=timeout,
         )
-        r.raise_for_status()
-        return json.loads(r.json().get("response", "{}"))
+        return json.loads(raw_output)
     except Exception:
         return {}
 

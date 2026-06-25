@@ -5,6 +5,9 @@ from ingestion.citation_detector import detect_citations
 from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
 from ingestion.embeddings import embed_uncited_claims
 from core.config import settings
+from core.llm_client import get_llm_client
+
+_llm = get_llm_client()
 
 class DocumentState(TypedDict):
     filename: str
@@ -36,7 +39,7 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
         all_citations.extend(page_citations)
 
         extracted = classify_page_claims(
-            page_text, model=settings.ollama_model, host=settings.ollama_host
+            page_text, llm_client=_llm
         )
         for claim in extracted:
             has_citation = claim_has_nearby_citation(claim["text"], page_text, page_citations)
@@ -106,8 +109,7 @@ def fraud_detection_agent(state: DocumentState) -> DocumentState:
     stats = extract_stats_from_claims(
         claims=claims,
         page_text=document_text,
-        ollama_host=settings.ollama_host,
-        ollama_model=settings.ollama_model,
+        llm_client=_llm,
     )
 
     # Run the four fraud detection checks
