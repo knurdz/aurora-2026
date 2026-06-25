@@ -59,11 +59,16 @@ def build_citation_graph(citations: List[dict]) -> Dict[str, Any]:
 def _resolve_citation(citation: dict) -> Optional[dict]:
     """
     Resolution order:
-      1. DOI-type citations: value field holds the DOI directly
+      1. DOI-type citations: resolve directly via CrossRef /works/{doi}
       2. Explicit doi field (future-proofing)
-      3. APA/numbered citations: fuzzy CrossRef title/author search
+      3. APA/numbered: fuzzy CrossRef search using context window first,
+         falling back to raw citation string if context is unavailable.
+
+    Using the surrounding sentence as the search query gives CrossRef
+    title/keyword signal that a bare "Author et al., Year" string lacks,
+    dramatically improving match quality for APA citations.
     """
-    # DOI citations carry the DOI in the value field
+    # DOI citations — direct resolution, no fuzzy search needed
     if citation.get("type") == "doi":
         doi = citation.get("value", "")
         if doi:
@@ -71,23 +76,26 @@ def _resolve_citation(citation: dict) -> Optional[dict]:
             if paper:
                 return paper
 
-    # Explicit doi field (never set by current detector, kept for safety)
+    # Explicit doi field (kept for forward compatibility)
     doi = citation.get("doi")
     if doi:
         paper = resolve_doi(doi)
         if paper:
             return paper
 
-    # APA / narrative / numbered → CrossRef text search
-    # Prefer "raw" (full original string), fall back to "value", then legacy keys
-    raw = (
-        citation.get("raw")
+    # APA / narrative / numbered — fuzzy search
+    # Prefer context (surrounding sentence) over raw citation string:
+    # "Physical activity helps people live longer (Ludlow and Roth, 2011)"
+    # gives CrossRef far more signal than just "Ludlow and Roth, 2011"
+    query = (
+        citation.get("context")
+        or citation.get("raw")
         or citation.get("value")
         or citation.get("raw_text")
         or citation.get("text", "")
     )
-    if raw:
-        results = search_by_query(raw, limit=1)
+    if query:
+        results = search_by_query(query, limit=1)
         if results:
             return results[0]
 
