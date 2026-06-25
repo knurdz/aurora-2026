@@ -35,7 +35,19 @@ class OllamaClient(LLMClient):
             return ""
 
 class OpenAIClient(LLMClient):
-    """Uses OpenAI or compatible HTTP API (e.g., vllm, litellm)."""
+    """Uses OpenAI or compatible HTTP API (e.g., Azure OpenAI, vllm, litellm).
+    
+    Works with endpoint set as either:
+      https://api.openai.com
+      https://tantalum-resource.openai.azure.com/openai/v1   ← strips trailing /v1
+    """
+    def _base_url(self) -> str:
+        """Normalize endpoint — strip trailing slash and /v1 so we never get /v1/v1/."""
+        endpoint = settings.openai_endpoint.rstrip("/")
+        if endpoint.endswith("/v1"):
+            endpoint = endpoint[:-3]
+        return endpoint
+
     def generate(self, prompt: str, temperature: float = 0.1,
                  max_tokens: int = 2048, json_mode: bool = False, timeout: float = 300.0) -> str:
         headers = {
@@ -51,13 +63,9 @@ class OpenAIClient(LLMClient):
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
+        url = f"{self._base_url()}/v1/chat/completions"
         try:
-            response = httpx.post(
-                f"{settings.openai_endpoint}/v1/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=timeout,
-            )
+            response = httpx.post(url, headers=headers, json=payload, timeout=timeout)
             response.raise_for_status()
             data = response.json()
             return data.get("choices", [{}])[0].get("message", {}).get("content", "")
