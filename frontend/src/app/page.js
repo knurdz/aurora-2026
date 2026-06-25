@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UploadCloud, FileText } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import { analyzeDocument } from '../lib/api';
 
 export default function Home() {
   const [file, setFile] = useState(null);
@@ -21,23 +22,14 @@ export default function Home() {
   const handleAnalyze = async () => {
     if (!file) return;
     setIsUploading(true);
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analyze`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
+      const data = await analyzeDocument(file);
       if (data.doc_id) {
-        // Navigate to the report page directly for now, or analysis progress if built later
         router.push(`/report/${data.doc_id}`);
       }
     } catch (err) {
       console.error(err);
-      alert('Analysis failed.');
+      alert(`Analysis failed: ${err.message}`);
     } finally {
       setIsUploading(false);
     }

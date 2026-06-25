@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import { Server, Cpu, CheckCircle, XCircle } from 'lucide-react';
+import { getConfig, getHealth } from '../../lib/api';
 
 export default function SettingsPage() {
   const [config, setConfig] = useState(null);
@@ -11,12 +12,9 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [configRes, healthRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/config`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`)
-        ]);
-        setConfig(await configRes.json());
-        setHealth(await healthRes.json());
+        const [configData, healthData] = await Promise.all([getConfig(), getHealth()]);
+        setConfig(configData);
+        setHealth(healthData);
       } catch (e) {
         console.error(e);
       } finally {

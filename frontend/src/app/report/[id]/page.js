@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import Navbar from '../../../components/Navbar';
-import { FileText, Download, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { FileText, Download, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { getAnalysis } from '../../../lib/api';
 
 export default function ReportPage() {
   const { id } = useParams();
@@ -13,9 +14,7 @@ export default function ReportPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analysis/${id}`);
-        if (!res.ok) throw new Error('Analysis not found');
-        setData(await res.json());
+        setData(await getAnalysis(id));
       } catch (e) {
         console.error(e);
       } finally {
