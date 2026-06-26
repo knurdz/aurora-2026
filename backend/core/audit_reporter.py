@@ -83,7 +83,7 @@ def _executive_summary(
     claims: List[Dict],
 ) -> str:
     verdict_emoji = {
-        "LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴", "CRITICAL": "⛔"
+        "HIGH": "🟢", "MEDIUM": "🟡", "LOW": "🔴", "CRITICAL": "⛔"
     }.get(verdict, "⚪")
 
     # Build a prose summary of the most significant findings
@@ -155,8 +155,8 @@ def _citation_integrity(graph_results: Optional[Dict]) -> str:
     resolved = graph_results.get("resolved_count", 0)
     failed = graph_results.get("failed_count", 0)
     lines.append(
-        f"\n**Citations resolved:** {resolved}  \n"
-        f"**Citations unresolvable:** {failed}"
+        f"\n**Reference entries resolved:** {resolved}  \n"
+        f"**Reference entries unresolvable:** {failed}"
     )
 
     community = graph_results.get("community_analysis", {})

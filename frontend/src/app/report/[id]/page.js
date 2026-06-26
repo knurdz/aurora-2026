@@ -33,28 +33,28 @@ const SCORE_LABELS = {
 
 const VERDICT_CONFIG = {
   LOW: {
-    tone: 'good',
-    label: 'Low Risk',
-    title: 'Research integrity looks steady',
-    summary: 'The audit did not surface major integrity concerns in the available evidence.',
-    color: 'var(--accent-emerald)',
-    icon: ShieldCheck,
+    tone: 'critical',
+    label: 'Low Integrity',
+    title: 'Multiple integrity concerns detected',
+    summary: 'The paper has significant audit findings that deserve analyst review.',
+    color: 'var(--accent-rose)',
+    icon: ShieldAlert,
   },
   MEDIUM: {
     tone: 'warning',
-    label: 'Medium Risk',
+    label: 'Medium Integrity',
     title: 'Some integrity signals need review',
     summary: 'The audit found signals worth checking before relying on this paper.',
     color: 'var(--accent-amber)',
     icon: AlertTriangle,
   },
   HIGH: {
-    tone: 'critical',
-    label: 'High Risk',
-    title: 'Multiple integrity concerns detected',
-    summary: 'The paper has significant audit findings that deserve analyst review.',
-    color: 'var(--accent-rose)',
-    icon: ShieldAlert,
+    tone: 'good',
+    label: 'High Integrity',
+    title: 'Research integrity looks steady',
+    summary: 'The audit did not surface major integrity concerns in the available evidence.',
+    color: 'var(--accent-emerald)',
+    icon: ShieldCheck,
   },
   CRITICAL: {
     tone: 'critical',
@@ -176,6 +176,8 @@ export default function ReportPage() {
   const pCurveVerdict = formatValue(data.p_curve_verdict);
   const cartelRisk = formatValue(data.cartel_risk);
   const fraudRisk = formatValue(data.fraud_risk);
+  const referenceCount = data.reference_count ?? data.citations_found;
+  const citationMentionCount = data.citation_mentions_found;
   const citationTone = getPanelTone(data.cartel_risk, retractedCount + suspiciousClusters);
   const statsTone = getPanelTone(data.fraud_risk || data.p_curve_verdict, grimFailures + fundingConflicts);
   const claimTone = deductions.some((item) => item.key === 'uncited_claims') ? 'warning' : 'good';
@@ -267,9 +269,11 @@ export default function ReportPage() {
             status={data.audit_report ? 'Narrative report generated' : 'Narrative report unavailable'}
             tone={methodologyTone}
           >
-            <MiniStat label="Citations" value={formatNumber(data.citations_found)} />
+            <MiniStat label="References" value={formatNumber(referenceCount)} />
+            {typeof citationMentionCount === 'number' && (
+              <MiniStat label="Mentions" value={formatNumber(citationMentionCount)} />
+            )}
             <MiniStat label="Fraud risk" value={fraudRisk} />
-            <MiniStat label="Cartel risk" value={cartelRisk} />
           </SignalCard>
         </section>
 
@@ -399,9 +403,9 @@ function getSectionLinks(markdown = '') {
 }
 
 function getVerdictFromScore(score) {
-  if (score >= 0.8) return 'LOW';
+  if (score >= 0.8) return 'HIGH';
   if (score >= 0.55) return 'MEDIUM';
-  if (score >= 0.3) return 'HIGH';
+  if (score >= 0.3) return 'LOW';
   return 'CRITICAL';
 }
 
