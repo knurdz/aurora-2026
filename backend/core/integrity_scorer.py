@@ -27,11 +27,11 @@ from typing import List, Dict, Any, Optional
 
 def _verdict(score: float) -> str:
     if score >= 0.80:
-        return "LOW"
+        return "HIGH"
     elif score >= 0.55:
         return "MEDIUM"
     elif score >= 0.30:
-        return "HIGH"
+        return "LOW"
     return "CRITICAL"
 
 

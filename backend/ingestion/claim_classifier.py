@@ -78,4 +78,8 @@ def claim_has_nearby_citation(claim_text: str, page_text: str, citations: List[D
     if idx == -1:
         return False
     nearby = page_text[max(0, idx - window): idx + len(claim_text) + window]
-    return any(c["raw"] in nearby for c in citations)
+    nearby_normalized = " ".join(nearby.split())
+    return any(
+        (raw := " ".join(c.get("raw", "").split())) and raw in nearby_normalized
+        for c in citations
+    )

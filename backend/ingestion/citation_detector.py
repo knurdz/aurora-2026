@@ -6,7 +6,7 @@ _APA_UNIT = (
     r"(?:\s[A-Z][A-Za-z\-']+)?"    # Optional second surname word (compound names)
     r"(?:\set al\."                 # Either: et al.
     r"|\s(?:&|and)\s[A-Za-z\-']+)?"  # Or: & / and + second author
-    r",?\s\d{4}[a-z]?"             # , Year (optional suffix letter e.g. 2026b)
+    r",\s\d{4}[a-z]?"              # , Year (optional suffix letter e.g. 2026b)
 )
 
 # Full parenthetical: (Author, Year) or (A et al., Y; B and C, Y; ...)
@@ -69,6 +69,8 @@ def detect_citations(text: str) -> List[Dict]:
     seen = set()  # deduplicate within page
 
     def _add(raw: str, ctype: str, value: str, match_start: int, match_end: int) -> None:
+        raw = _normalize_match(raw)
+        value = _normalize_match(value)
         key = (ctype, value)
         if key not in seen:
             seen.add(key)
@@ -98,6 +100,12 @@ def detect_citations(text: str) -> List[Dict]:
 
     # --- DOI ---
     for m in _DOI_RE.finditer(text):
+        if m.group(0).lower().startswith("doi:"):
+            continue
         _add(m.group(0), "doi", m.group(1), m.start(), m.end())
 
     return citations
+
+
+def _normalize_match(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()

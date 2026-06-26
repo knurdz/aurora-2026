@@ -91,15 +91,18 @@ async def _resolve_citations_async(
 
     resolved: List[dict] = []
     failed: List[dict] = list(unresolvable)
-    for citation in citations:
-        key = _citation_key(citation)
-        if not key:
-            continue
+    seen_dois = set()
+    for key, grouped_citations in grouped.items():
         paper = results.get(key)
         if paper:
+            doi = _normalize_doi(paper.get("doi", ""))
+            if doi:
+                if doi in seen_dois:
+                    continue
+                seen_dois.add(doi)
             resolved.append(dict(paper))
         else:
-            failed.append(citation)
+            failed.append(grouped_citations[0])
 
     return resolved, failed
 

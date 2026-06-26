@@ -3,6 +3,7 @@ from typing import TypedDict, List, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ingestion.parser import parse_document
 from ingestion.citation_detector import detect_citations
+from ingestion.reference_extractor import extract_reference_entries
 from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
 from ingestion.embeddings import embed_uncited_claims
 from core.config import settings
@@ -32,6 +33,8 @@ class DocumentState(TypedDict):
     pages: List[dict]
     claims: List[dict]
     citations: List[dict]
+    citation_mentions: List[dict]
+    reference_entries: List[dict]
     graph_results: Optional[dict]
     fraud_results: Optional[dict]
     integrity_score: Optional[dict]
@@ -44,7 +47,7 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
     _emit(doc_id, f"✅ Parsed {len(pages)} pages")
 
     all_claims: List[dict] = []
-    all_citations: List[dict] = []
+    all_citation_mentions: List[dict] = []
     uncited_for_embedding: List[dict] = []
 
     worker_count = min(max(1, settings.claim_page_concurrency), max(1, len(pages)))
@@ -53,18 +56,28 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
 
     for result in page_results:
         all_claims.extend(result["claims"])
-        all_citations.extend(result["citations"])
+        all_citation_mentions.extend(result["citations"])
         uncited_for_embedding.extend(result["uncited_for_embedding"])
+
+    reference_entries = extract_reference_entries(pages)
+    _emit(doc_id, f"📚 Extracted {len(reference_entries)} reference-list entries")
 
     _emit(doc_id, f"💾 Embedding {len(uncited_for_embedding)} uncited claims into vector store...")
     embed_uncited_claims(state["doc_id"], uncited_for_embedding)
 
-    _emit(doc_id, f"✅ Phase 1 complete — {len(all_claims)} total claims, {len(all_citations)} citations found")
+    _emit(
+        doc_id,
+        f"✅ Phase 1 complete — {len(all_claims)} total claims, "
+        f"{len(reference_entries)} cited works, "
+        f"{len(all_citation_mentions)} citation mentions",
+    )
 
     state["pages"] = pages
     state["document_text"] = "\n\n".join(p["text"] for p in pages)
     state["claims"] = all_claims
-    state["citations"] = all_citations
+    state["citation_mentions"] = all_citation_mentions
+    state["reference_entries"] = reference_entries
+    state["citations"] = reference_entries or all_citation_mentions
     return state
 
 
@@ -133,7 +146,11 @@ def citation_graph_agent(state: DocumentState) -> DocumentState:
     from core.community_detector import detect_citation_communities
 
     doc_id = state["doc_id"]
-    citations = state.get("citations", [])
+    citations = state.get("reference_entries") or []
+    if not citations:
+        citations = state.get("citation_mentions", [])
+        if citations:
+            _emit(doc_id, "⚠️  No reference list found — falling back to citation mentions for graph phase")
 
     if not citations:
         _emit(doc_id, "⚠️  No citations found — skipping citation graph phase")

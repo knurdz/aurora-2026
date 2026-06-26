@@ -116,6 +116,8 @@ async def analyze_document(background_tasks: BackgroundTasks, file: UploadFile =
                 "pages": [],
                 "claims": [],
                 "citations": [],
+                "citation_mentions": [],
+                "reference_entries": [],
                 "graph_results": None,
                 "fraud_results": None,
                 "integrity_score": None,
@@ -127,6 +129,7 @@ async def analyze_document(background_tasks: BackgroundTasks, file: UploadFile =
             graph = result.get("graph_results") or {}
             fraud = result.get("fraud_results") or {}
             community = graph.get("community_analysis", {})
+            graph_inputs = result.get("reference_entries") or result.get("citation_mentions") or result["citations"]
 
             analysis_result = {
                 "status": "processed",
@@ -137,7 +140,9 @@ async def analyze_document(background_tasks: BackgroundTasks, file: UploadFile =
                 # Document stats
                 "pages_parsed": len(result["pages"]),
                 "claims_found": len(result["claims"]),
-                "citations_found": len(result["citations"]),
+                "citations_found": len(graph_inputs),
+                "reference_count": len(result.get("reference_entries", [])),
+                "citation_mentions_found": len(result.get("citation_mentions", [])),
 
                 # integrity scorecard
                 "integrity_score": integrity.get("score"),
