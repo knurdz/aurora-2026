@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'VeriScholar | Research Integrity Audit',
-  description: 'AI-powered scientific claim and citation analysis.',
+  title: 'VeriScholar | Research Integrity Verification Platform',
+  description: 'AI-powered paper integrity screening across claims, citations, and statistical signals.',
 };
 
 export default function RootLayout({ children }) {

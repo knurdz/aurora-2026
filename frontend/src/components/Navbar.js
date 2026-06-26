@@ -5,11 +5,15 @@ import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const isAuditRoute =
+    pathname === '/audit' ||
+    pathname.startsWith('/analyze/') ||
+    pathname.startsWith('/report/');
 
   return (
-    <nav style={{ 
-      display: 'flex', 
-      justifyContent: 'space-between', 
+    <nav style={{
+      display: 'flex',
+      justifyContent: 'space-between',
       alignItems: 'center',
       padding: '1rem 2rem',
       borderBottom: 'var(--glass-border)',
@@ -28,6 +32,9 @@ export default function Navbar() {
       
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
         <Link href="/" style={{ color: pathname === '/' ? 'white' : 'var(--text-secondary)' }}>
+          Home
+        </Link>
+        <Link href="/audit" style={{ color: isAuditRoute ? 'white' : 'var(--text-secondary)' }}>
           Audit Tool
         </Link>
         <Link href="/settings" style={{ color: pathname === '/settings' ? 'white' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
