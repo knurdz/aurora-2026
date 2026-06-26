@@ -220,7 +220,7 @@ export default function ReportPage() {
             </div>
             <div className="report-score-copy">
               <p>Integrity Score</p>
-              <strong>{verdict}</strong>
+              <strong>{verdictConfig.label}</strong>
             </div>
             <button className="btn-secondary report-export-button" onClick={() => window.print()}>
               <Download size={18} />
