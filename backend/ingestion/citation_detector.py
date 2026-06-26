@@ -1,25 +1,28 @@
 import re
+import unicodedata
 from typing import List, Dict
 
+_PARTICLE = r"(?:[Vv]an\s[Dd]er\s|[Dd]e\s|[Ll]e\s)?"
+
 _APA_UNIT = (
-    r"[A-Z][A-Za-z\-']+"           # First word of surname (must start uppercase)
-    r"(?:\s[A-Z][A-Za-z\-']+)?"    # Optional second surname word (compound names)
-    r"(?:\set al\."                 # Either: et al.
-    r"|\s(?:&|and)\s[A-Za-z\-']+)?"  # Or: & / and + second author
-    r",?\s\d{4}[a-z]?"             # , Year (optional suffix letter e.g. 2026b)
+    _PARTICLE
+    + r"[A-Z][A-Za-z\-']+"
+    + r"(?:\s[A-Z][A-Za-z\-']+)?"
+    + r"(?:\set al\."
+    + r"|\s(?:&|and)\s[A-Za-z\-']+)?"
+    + r",?\s\d{4}[a-z]?"
+    + r"(?:,\s\d{4}[a-z]?)?"
 )
 
-# Full parenthetical: (Author, Year) or (A et al., Y; B and C, Y; ...)
 _APA_RE = re.compile(
     r"\((" + _APA_UNIT + r"(?:;\s*" + _APA_UNIT + r")*)\)"
 )
 
-# Narrative form: Author (Year) or Author et al. (Year)
-# e.g. "Malina (1996)", "Trost et al. (1996)", "Chiou and Muller (2009)"
 _APA_NARRATIVE_UNIT = (
-    r"[A-Z][A-Za-z\-']+"
-    r"(?:\s[A-Z][A-Za-z\-']+)?"
-    r"(?:\set al\.|\s(?:&|and)\s[A-Za-z\-']+)?"
+    _PARTICLE
+    + r"[A-Z][A-Za-z\-']+"
+    + r"(?:\s[A-Z][A-Za-z\-']+)?"
+    + r"(?:\set al\.|\s(?:&|and)\s[A-Za-z\-']+)?"
 )
 _APA_NARRATIVE_RE = re.compile(
     _APA_NARRATIVE_UNIT + r"\s\(\d{4}[a-z]?\)"
@@ -31,33 +34,59 @@ _DOI_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Sentence boundary — used to extract a clean context window
+# Latin-1 / modifier glyphs PDF extractors insert mid-word.
+# Captured as a group so we can detect when they precede a newline.
+_STRAY_GLYPHS = r'[\xa8\xb4\x60\u02cb\u02ca\u00b8\u02d9]'
+
 _SENT_END_RE = re.compile(r'(?<=[.!?])\s+')
 
 
-def _get_context(text: str, start: int, end: int, window: int = 200) -> str:
+def _normalise(text: str) -> str:
     """
-    Extract the sentence(s) surrounding the match at [start:end].
+    Clean PDF-extracted text for citation regex matching.
 
-    Strategy: take a raw character window, then trim to the nearest
-    sentence boundaries so CrossRef gets a clean title/keyword-bearing
-    phrase rather than a mid-sentence fragment.
+    Order matters:
+      1. Remove stray glyph + newline pairs ('M\xa8\nuller' → 'Muller').
+         The glyph and newline together represent a single diacritic that was
+         split across a line — strip both as a unit so no space is introduced.
+      2. Remove any remaining isolated stray glyphs mid-word.
+      3. Join hyphenated line breaks ('Ma-\nlina' → 'Malina').
+      4. Replace remaining newlines with spaces.
+      5. NFD decomposition + combining mark removal for proper Unicode accents.
     """
+    # Step 1: glyph immediately followed by newline → delete both
+    text = re.sub(_STRAY_GLYPHS + r'\n', '', text)
+
+    # Step 2: remaining isolated stray glyphs
+    text = re.sub(_STRAY_GLYPHS, '', text)
+
+    # Step 3: dehyphenate
+    text = re.sub(r'-\s*\n\s*', '', text)
+
+    # Step 4: flatten remaining newlines to spaces
+    text = re.sub(r'\n', ' ', text)
+
+    # Step 5: NFD strip combining marks
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+
+    return text
+
+
+def _get_context(text: str, start: int, end: int, window: int = 200) -> str:
     left = max(0, start - window)
     right = min(len(text), end + window)
     snippet = text[left:right].strip()
 
-    # Try to trim to sentence boundaries within the snippet
     sentences = _SENT_END_RE.split(snippet)
     if len(sentences) > 1:
-        # Keep only sentences that overlap with the match region
         rebuilt = []
         pos = left
         for sent in sentences:
             sent_end = pos + len(sent)
             if pos <= end and sent_end >= start:
                 rebuilt.append(sent.strip())
-            pos = sent_end + 1  # +1 for the whitespace consumed by split
+            pos = sent_end + 1
         if rebuilt:
             return " ".join(rebuilt)
 
@@ -65,14 +94,15 @@ def _get_context(text: str, start: int, end: int, window: int = 200) -> str:
 
 
 def detect_citations(text: str) -> List[Dict]:
+    norm = _normalise(text)
     citations = []
-    seen = set()  # deduplicate within page
+    seen = set()
 
     def _add(raw: str, ctype: str, value: str, match_start: int, match_end: int) -> None:
         key = (ctype, value)
         if key not in seen:
             seen.add(key)
-            context = _get_context(text, match_start, match_end)
+            context = _get_context(norm, match_start, match_end)
             citations.append({
                 "raw": raw,
                 "type": ctype,
@@ -80,24 +110,19 @@ def detect_citations(text: str) -> List[Dict]:
                 "context": context,
             })
 
-    # --- Parenthetical APA clusters ---
-    for m in _APA_RE.finditer(text):
+    for m in _APA_RE.finditer(norm):
         for unit in re.split(r";\s*", m.group(1)):
             unit = unit.strip()
             if unit:
                 _add(unit, "apa", unit, m.start(), m.end())
 
-    # --- Narrative APA ---
-    for m in _APA_NARRATIVE_RE.finditer(text):
-        raw = m.group(0)
-        _add(raw, "apa_narrative", raw, m.start(), m.end())
+    for m in _APA_NARRATIVE_RE.finditer(norm):
+        _add(m.group(0), "apa_narrative", m.group(0), m.start(), m.end())
 
-    # --- Numbered ---
-    for m in _NUMBERED_RE.finditer(text):
+    for m in _NUMBERED_RE.finditer(norm):
         _add(m.group(0), "numbered", m.group(1), m.start(), m.end())
 
-    # --- DOI ---
-    for m in _DOI_RE.finditer(text):
+    for m in _DOI_RE.finditer(norm):
         _add(m.group(0), "doi", m.group(1), m.start(), m.end())
 
     return citations
