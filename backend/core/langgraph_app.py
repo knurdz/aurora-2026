@@ -1,5 +1,6 @@
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, List, Optional, Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from ingestion.parser import parse_document
 from ingestion.citation_detector import detect_citations
 from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
@@ -46,26 +47,14 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
     all_citations: List[dict] = []
     uncited_for_embedding: List[dict] = []
 
-    _emit(doc_id, f"🧠 Extracting claims with LLM ({len(pages)} pages to process)...")
-    for page in pages:
-        page_num = page["page_number"]
-        page_text = page["text"]
+    worker_count = min(max(1, settings.claim_page_concurrency), max(1, len(pages)))
+    _emit(doc_id, f"🧠 Extracting claims with LLM ({len(pages)} pages, {worker_count} workers)...")
+    page_results = _process_claim_pages(pages, doc_id)
 
-        page_citations = detect_citations(page_text)
-        for c in page_citations:
-            c["page_number"] = page_num
-        all_citations.extend(page_citations)
-
-        extracted = classify_page_claims(page_text, llm_client=_llm)
-        for claim in extracted:
-            has_citation = claim_has_nearby_citation(claim["text"], page_text, page_citations)
-            claim["page_number"] = page_num
-            claim["has_citation"] = has_citation
-            all_claims.append(claim)
-            if not has_citation:
-                uncited_for_embedding.append({"text": claim["text"], "page_number": page_num})
-
-        _emit(doc_id, f"  → Page {page_num}: {len(extracted)} claims, {len(page_citations)} citations detected")
+    for result in page_results:
+        all_claims.extend(result["claims"])
+        all_citations.extend(result["citations"])
+        uncited_for_embedding.extend(result["uncited_for_embedding"])
 
     _emit(doc_id, f"💾 Embedding {len(uncited_for_embedding)} uncited claims into vector store...")
     embed_uncited_claims(state["doc_id"], uncited_for_embedding)
@@ -77,6 +66,67 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
     state["claims"] = all_claims
     state["citations"] = all_citations
     return state
+
+
+def _process_claim_pages(pages: List[dict], doc_id: str) -> List[dict]:
+    if not pages:
+        return []
+
+    worker_count = min(max(1, settings.claim_page_concurrency), len(pages))
+    results: List[dict] = []
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        future_to_page = {
+            executor.submit(_process_claim_page, page): page
+            for page in pages
+        }
+
+        for future in as_completed(future_to_page):
+            result = future.result()
+            results.append(result)
+            _emit(
+                doc_id,
+                f"  → Page {result['page_number']}: "
+                f"{len(result['claims'])} claims, "
+                f"{len(result['citations'])} citations detected",
+            )
+
+    return sorted(results, key=lambda r: r["page_number"])
+
+
+def _process_claim_page(page: dict) -> dict:
+    page_num = page["page_number"]
+    page_text = page["text"]
+
+    page_citations = detect_citations(page_text)
+    for citation in page_citations:
+        citation["page_number"] = page_num
+
+    extracted = classify_page_claims(
+        page_text,
+        llm_client=_llm,
+        timeout=settings.claim_page_timeout,
+    )
+
+    claims: List[dict] = []
+    uncited_for_embedding: List[dict] = []
+    for claim in extracted:
+        has_citation = claim_has_nearby_citation(claim["text"], page_text, page_citations)
+        enriched_claim = {
+            **claim,
+            "page_number": page_num,
+            "has_citation": has_citation,
+        }
+        claims.append(enriched_claim)
+        if not has_citation:
+            uncited_for_embedding.append({"text": claim["text"], "page_number": page_num})
+
+    return {
+        "page_number": page_num,
+        "claims": claims,
+        "citations": page_citations,
+        "uncited_for_embedding": uncited_for_embedding,
+    }
 
 def citation_graph_agent(state: DocumentState) -> DocumentState:
     from core.graph_builder import build_citation_graph

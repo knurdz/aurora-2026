@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     openai_api_key: str = ""                           # API key
     openai_endpoint: str = "https://api.openai.com"    # Custom endpoint URL
     openai_model: str = "gpt-4o-mini"                  # Model name
+
+    # Citation resolution tuning
+    citation_crossref_concurrency: int = 8
+    citation_semantic_scholar_concurrency: int = 4
+    citation_request_timeout: float = 12.0
+
+    # Page-level claim extraction tuning
+    claim_page_concurrency: int = 3
+    claim_page_timeout: float = 180.0
     
     fastapi_env: str = "development"
 
