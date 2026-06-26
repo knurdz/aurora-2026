@@ -23,7 +23,8 @@ from core.llm_client import LLMClient
 
 # p-values: p < 0.001, p = 0.043, p=.05, p ≤ 0.01
 _P_VALUE_RE = re.compile(
-    r"p\s*[<=>≤≥]\s*\.?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?",
+    r"\bp\s*(?P<operator><=|>=|[<=>≤≥])\s*"
+    r"(?P<value>(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)",
     re.IGNORECASE,
 )
 
@@ -92,11 +93,11 @@ def extract_stats_from_claims(
 
     Structure:
       {
-        "p_values": [float],
+        "p_values": [{"value": float, "operator": str, "raw": str, "source": str}],
         "sample_sizes": [int],
         "means": [{"value": float, "decimal_places": int, "source": str}],
         "effect_sizes": [{"type": str, "value": float}],
-        "claim_stat_pairs": [{"claim": str, "p_value": float|None, "n": int|None}],
+        "claim_stat_pairs": [{"claim": str, "p_value": dict|None, "n": int|None}],
       }
     """
     full_text = page_text + "\n" + "\n".join(c.get("text", "") for c in claims)
@@ -110,7 +111,7 @@ def extract_stats_from_claims(
     # Pass 2 — LLM fallback (only if regex found very little)
     if len(p_values) == 0 and len(sample_sizes) == 0:
         llm_stats = _llm_extract(full_text, llm_client)
-        p_values = p_values or llm_stats.get("p_values", [])
+        p_values = p_values or _normalise_llm_p_values(llm_stats.get("p_values", []))
         sample_sizes = sample_sizes or llm_stats.get("sample_sizes", [])
         means = means or [
             {"value": m["value"], "decimal_places": m.get("decimal_places", 2), "source": "llm"}
@@ -134,23 +135,50 @@ def extract_stats_from_claims(
 # Regex extractors
 # ---------------------------------------------------------------------------
 
-def _extract_p_values(text: str) -> List[float]:
+def _normalise_p_operator(operator: str) -> str:
+    return {"≤": "<=", "≥": ">="}.get(operator, operator)
+
+
+def _extract_p_values(text: str) -> List[Dict]:
     results = []
     for m in _P_VALUE_RE.finditer(text):
         raw = m.group(0)
-        # Pull the numeric part after the operator
-        num_match = re.search(r"[<=>≤≥]\s*\.?(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)", raw)
-        if num_match:
-            try:
-                val = float(num_match.group(1) if "." in num_match.group(1) else "0." + num_match.group(1))
-                # Normalise ".05" → 0.05 when no leading digit
-                if val > 1:
-                    val = val / (10 ** len(num_match.group(1)))
-                if 0 < val <= 1:
-                    results.append(round(val, 6))
-            except ValueError:
-                pass
-    return list(dict.fromkeys(results))  # deduplicate, preserve order
+        try:
+            val = float(m.group("value"))
+        except ValueError:
+            continue
+        if 0 < val <= 1:
+            results.append({
+                "value": round(val, 6),
+                "operator": _normalise_p_operator(m.group("operator")),
+                "raw": raw,
+                "source": "regex",
+            })
+    return results
+
+
+def _normalise_llm_p_values(p_values: List[Any]) -> List[Dict]:
+    results = []
+    for p in p_values:
+        try:
+            if isinstance(p, dict):
+                value = float(p.get("value"))
+                operator = _normalise_p_operator(str(p.get("operator", "=")))
+                raw = str(p.get("raw", f"p {operator} {value}"))
+            else:
+                value = float(p)
+                operator = "="
+                raw = f"p = {value}"
+        except (TypeError, ValueError):
+            continue
+        if 0 < value <= 1:
+            results.append({
+                "value": round(value, 6),
+                "operator": operator,
+                "raw": raw,
+                "source": "llm",
+            })
+    return results
 
 
 def _extract_sample_sizes(text: str) -> List[int]:
@@ -225,14 +253,56 @@ def _pair_claims_with_stats(claims: List[Dict], page_text: str) -> List[Dict]:
         idx = page_text.find(snippet[:60])
         window = page_text[max(0, idx - 400): idx + len(snippet) + 400] if idx != -1 else snippet
 
-        p_vals = _extract_p_values(window)
-        ns = _extract_sample_sizes(window)
-        ms = _extract_means(window)
+        pair = _pair_stats_in_text(window, anchor=snippet[:60])
 
         pairs.append({
             "claim": snippet,
-            "p_value": p_vals[0] if p_vals else None,
-            "n": ns[0] if ns else None,
-            "mean": ms[0] if ms else None,
+            **pair,
         })
     return pairs
+
+
+def _pair_stats_in_text(text: str, anchor: str = "") -> Dict[str, Any]:
+    """
+    Prefer same-sentence mean/n pairs. Broad-window pairing is only used when
+    there is exactly one candidate of each type, avoiding false GRIM failures
+    from crossing unrelated statistics.
+    """
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+
+    anchor = anchor.strip()
+    if anchor:
+        anchored_sentences = [s for s in sentences if anchor in s]
+        candidate_sentences = anchored_sentences or sentences
+    else:
+        candidate_sentences = sentences
+
+    for sentence in candidate_sentences:
+        p_vals = _extract_p_values(sentence)
+        ns = _extract_sample_sizes(sentence)
+        ms = _extract_means(sentence)
+        if len(ns) == 1 and len(ms) == 1:
+            return {
+                "p_value": p_vals[0] if p_vals else None,
+                "n": ns[0],
+                "mean": ms[0],
+                "pair_confidence": "high",
+            }
+
+    p_vals = _extract_p_values(text)
+    ns = _extract_sample_sizes(text)
+    ms = _extract_means(text)
+    if len(ns) == 1 and len(ms) == 1:
+        return {
+            "p_value": p_vals[0] if p_vals else None,
+            "n": ns[0],
+            "mean": ms[0],
+            "pair_confidence": "medium",
+        }
+
+    return {
+        "p_value": p_vals[0] if len(p_vals) == 1 else None,
+        "n": None,
+        "mean": None,
+        "pair_confidence": "ambiguous" if ns or ms else "none",
+    }
