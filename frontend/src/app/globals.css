@@ -11,6 +11,7 @@
   --accent-emerald: #10b981;
   --accent-rose: #ef4444;
   --accent-amber: #f59e0b;
+  --accent-teal: #0d9488;
   --gradient-primary: linear-gradient(135deg, #2563eb, #7c3aed);
   
   --text-primary: #0f172a;
@@ -1270,7 +1271,7 @@ main {
 
 .signal-stat-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(min-content, 1fr));
   gap: 0.55rem;
 }
 
@@ -1282,16 +1283,19 @@ main {
 
 .mini-stat span {
   display: block;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   color: var(--text-secondary);
   font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .mini-stat strong {
   display: block;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: break-word;
   color: var(--text-primary);
-  font-size: 0.98rem;
+  font-size: 0.95rem;
+  line-height: 1.25;
 }
 
 .report-workspace {
@@ -1418,7 +1422,10 @@ main {
 
 .report-content h1,
 .report-content h2,
-.report-content h3 {
+.report-content h3,
+.report-content h4,
+.report-content h5,
+.report-content h6 {
   color: var(--text-primary);
   scroll-margin-top: 96px;
 }
@@ -1426,7 +1433,7 @@ main {
 .report-content h1 {
   margin: 0 0 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   font-size: 1.8rem;
   line-height: 1.2;
 }
@@ -1440,7 +1447,6 @@ main {
 
 .report-content h3 {
   margin: 1.5rem 0 0.6rem;
-  color: #dbeafe;
   font-size: 1.05rem;
 }
 
@@ -1455,10 +1461,10 @@ main {
 
 .report-content code {
   padding: 0.12rem 0.38rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #d6f3ff;
+  background: rgba(15, 23, 42, 0.04);
+  color: var(--text-primary);
   font-size: 0.9em;
 }
 
@@ -1485,14 +1491,14 @@ main {
 .report-content hr {
   margin: 2rem 0;
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .report-table-wrap {
   width: 100%;
   margin: 1.25rem 0;
   overflow-x: auto;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 8px;
 }
 
@@ -1510,14 +1516,14 @@ main {
 }
 
 .report-content th {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.04);
   color: var(--text-primary);
   font-size: 0.82rem;
   text-transform: uppercase;
 }
 
 .report-content td {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
   color: var(--text-secondary);
 }
 
@@ -2490,13 +2496,13 @@ main {
 }
 
 .twisty-day-badge {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-secondary);
   background: rgba(15, 23, 42, 0.05);
@@ -3170,7 +3176,7 @@ main {
 .landing-bubble-1 {
   top: 2%;
   left: -120px;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, rgba(124, 58, 237, 0) 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-teal) 22%, transparent) 0%, transparent 70%);
   animation: floatBubble1 22s infinite alternate ease-in-out;
 }
 
@@ -3179,7 +3185,7 @@ main {
   right: -160px;
   width: 520px;
   height: 520px;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.18) 0%, rgba(20, 184, 166, 0) 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-teal) 18%, transparent) 0%, transparent 70%);
   animation: floatBubble2 28s infinite alternate ease-in-out;
 }
 
@@ -3188,7 +3194,7 @@ main {
   left: -80px;
   width: 420px;
   height: 420px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0) 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-teal) 18%, transparent) 0%, transparent 70%);
   animation: floatBubble1 26s infinite alternate-reverse ease-in-out;
 }
 
@@ -3569,10 +3575,10 @@ main {
 
 /* IDE / Terminal Mockup Code Window */
 .dev-ide-window {
-  background: #0b0f19;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f8fafc;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -3584,8 +3590,8 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f1f5f9;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   flex-shrink: 0;
 }
 
@@ -3641,14 +3647,14 @@ main {
 .dev-ide-filename {
   font-family: monospace;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: #475569;
   font-weight: 500;
 }
 
 .dev-ide-copy-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 6px;
@@ -3659,8 +3665,8 @@ main {
 }
 
 .dev-ide-copy-btn:hover {
-  color: #cbd5e1;
-  background: rgba(255, 255, 255, 0.05);
+  color: #475569;
+  background: rgba(15, 23, 42, 0.05);
 }
 
 .dev-ide-copy-btn.copied {
@@ -3677,17 +3683,17 @@ main {
   font-family: 'Fira Code', 'Courier New', Courier, monospace;
   font-size: 0.8rem;
   line-height: 1.6;
-  color: #e2e8f0;
+  color: #334155;
   white-space: pre;
 }
 
 /* Syntax Highlighting */
-.code-c-cmd { color: #f43f5e; font-weight: 600; }
-.code-c-arg { color: #38bdf8; }
-.code-c-url { color: #10b981; text-decoration: underline; text-underline-offset: 3px; }
-.code-c-hdr { color: #fbbf24; }
-.code-c-val { color: #cbd5e1; }
-.code-c-param { color: #c084fc; }
+.code-c-cmd { color: #d91b5c; font-weight: 600; }
+.code-c-arg { color: #0284c7; }
+.code-c-url { color: #0d9488; text-decoration: underline; text-underline-offset: 3px; }
+.code-c-hdr { color: #b45309; }
+.code-c-val { color: #475569; }
+.code-c-param { color: #7c3aed; }
 
 /* Quota Display Styling */
 .dev-quota-card {

@@ -318,7 +318,7 @@ function ReportContent() {
             </div>
             <button className="btn-secondary report-export-button" onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', borderRadius: '999px', padding: '0.45rem 1.1rem', fontSize: '0.85rem' }}>
               <Download size={18} />
-              Export PDF
+              Export Report
             </button>
           </div>
         </section>
@@ -384,7 +384,8 @@ function ReportContent() {
                   Analysis of integrity penalties applied to the manuscript score.
                 </p>
               </div>
-              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}>
+              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <ShieldAlert size={12} style={{ color: 'var(--accent-rose)' }} />
                 <span>Penalties</span>
               </div>
             </div>
@@ -439,7 +440,8 @@ function ReportContent() {
                   Distribution of isolated claims, resolved citations, mentions, and anomalies.
                 </p>
               </div>
-              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}>
+              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <CircleGauge size={12} style={{ color: 'var(--text-secondary)' }} />
                 <span>Scanned Volume</span>
               </div>
             </div>
@@ -447,11 +449,11 @@ function ReportContent() {
             <div className="twisty-chart-summary" style={{ marginBottom: '1.5rem' }}>
               <div className="twisty-percentage-grow" style={{ fontSize: '2rem' }}>
                 {claimsVal + citationsVal + mentionsVal}
-                <span style={{ fontSize: '0.82rem', marginTop: '0.2' }}>Total items isolated and processed in manuscript</span>
+                <span style={{ fontSize: '0.82rem', marginTop: '0.35rem' }}>Total items isolated and processed in manuscript</span>
               </div>
             </div>
 
-            <div className="twisty-bar-chart" style={{ marginTop: '1rem', height: '170px' }}>
+            <div className="twisty-bar-chart" style={{ marginTop: '2.5rem', height: '170px' }}>
               {chartColumns.map((col, idx) => {
                 const isHighlighted = idx === highlightIndex;
                 const heightPx = Math.max(15, Math.round((col.value / maxVal) * 100));
@@ -529,7 +531,12 @@ function ReportContent() {
 
           <article className="glass-panel report-content report-document">
             {data.audit_report ? (
-              <ReactMarkdown components={markdownComponents}>{data.audit_report}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents}>
+                {data.audit_report.replace(
+                  /# VeriScholar Aurora 2026 — Integrity Audit Report/g,
+                  '# Integrity Audit Report'
+                )}
+              </ReactMarkdown>
             ) : (
               <p>No text report available.</p>
             )}

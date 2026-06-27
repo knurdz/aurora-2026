@@ -67,7 +67,7 @@ def generate_audit_report(
 
 def _header(filename: str, timestamp: str) -> str:
     return (
-        f"# VeriScholar Aurora 2026 — Integrity Audit Report\n\n"
+        f"# Integrity Audit Report\n\n"
         f"**Document:** `{filename}`  \n"
         f"**Generated:** {timestamp}  \n"
         f"**System:** VeriScholar Aurora 2026 / Phase 5"

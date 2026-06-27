@@ -766,8 +766,8 @@ function DashboardContent() {
                 <div className="dev-keys-card">
                   <div className="dev-header-with-badge">
                     <div className="dev-header-info">
-                      <h2>Authentication Keys</h2>
-                      <p>Integrate VeriScholar REST integrations with local peer review workflows.</p>
+                      <h2>REST & MCP Authentication Keys</h2>
+                      <p>Integrate VeriScholar REST and MCP integrations with local peer review workflows.</p>
                     </div>
                     <div className="dev-badge-count">
                       <KeyRound size={14} />
@@ -884,8 +884,8 @@ function DashboardContent() {
                   <div className="dev-keys-card" style={{ gap: '1.25rem' }}>
                     <div className="dev-header-with-badge" style={{ paddingBottom: '0.85rem' }}>
                       <div className="dev-header-info">
-                        <h2 style={{ fontSize: '1.25rem' }}>API Quick Start</h2>
-                        <p style={{ marginTop: '0.15rem' }}>Submit manuscript files via simple shell commands or REST webhooks.</p>
+                        <h2 style={{ fontSize: '1.25rem' }}>REST & MCP Quick Start</h2>
+                        <p style={{ marginTop: '0.15rem' }}>Submit manuscript files via simple shell commands, REST webhooks, or MCP integration.</p>
                       </div>
                       <div className="dev-badge-count" style={{ background: 'rgba(15, 23, 42, 0.04)', color: 'var(--text-secondary)', borderColor: 'rgba(15, 23, 42, 0.08)' }}>
                         <Terminal size={14} />
@@ -988,8 +988,8 @@ function DashboardContent() {
                   <div className="dev-quota-card">
                     <div className="dev-header-with-badge">
                       <div className="dev-header-info">
-                        <h2 style={{ fontSize: '1.25rem' }}>API Quota Usage</h2>
-                        <p style={{ marginTop: '0.15rem' }}>Monitor request rate limits and remaining scan volume allocation.</p>
+                        <h2 style={{ fontSize: '1.25rem' }}>REST & MCP Quota Usage</h2>
+                        <p style={{ marginTop: '0.15rem' }}>Monitor request rate limits and remaining scan volume allocation for REST & MCP endpoints.</p>
                       </div>
                       <div className="dev-badge-count" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.12)' }}>
                         <ShieldCheck size={14} />
