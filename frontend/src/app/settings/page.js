@@ -18,7 +18,8 @@ import {
   Search,
   Settings,
   Bell,
-  ArrowRight
+  ArrowRight,
+  Database
 } from 'lucide-react';
 import {
   deleteAccount,
@@ -53,6 +54,9 @@ function SettingsContent() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [user, setUser] = useState(null);
 
+  // Redesign state
+  const [useCustomAi, setUseCustomAi] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -68,6 +72,7 @@ function SettingsContent() {
         setConfig(configData);
         setHealth(healthData);
         setAiSettings(aiData);
+        setUseCustomAi(aiData?.using_custom_ai || false);
         if (userData.authenticated) {
           setUser(userData.user);
         }
@@ -90,7 +95,7 @@ function SettingsContent() {
   }, []);
 
   async function handleSaveAiSettings(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     setNotice('');
     setError('');
     setSaving(true);
@@ -106,7 +111,7 @@ function SettingsContent() {
       setAiSettings(saved);
       setConfig(saved);
       setForm((current) => ({ ...current, api_key: '' }));
-      setNotice('Custom AI model saved.');
+      setNotice('Custom AI model configuration saved successfully.');
     } catch (e) {
       setError(readableError(e));
     } finally {
@@ -123,7 +128,8 @@ function SettingsContent() {
       setAiSettings(reset);
       setConfig(reset);
       setForm({ endpoint: '', model_name: '', api_key: '' });
-      setNotice('Using the VeriScholar default AI provider.');
+      setUseCustomAi(false);
+      setNotice('Switched back to VeriScholar default AI models.');
     } catch (e) {
       setError(readableError(e));
     } finally {
@@ -153,7 +159,7 @@ function SettingsContent() {
       <Navbar />
       <main className="dashboard-shell">
         
-        {/* Subnav aligned exactly like Dashboard */}
+        {/* Mockup sub-navbar */}
         <section className="twisty-subnav">
           <div className="twisty-nav-group">
             <button 
@@ -215,162 +221,203 @@ function SettingsContent() {
             <p style={{ margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Loading settings...</p>
           </div>
         ) : (
-          <div className="twisty-layout-grid">
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             
-            {/* Left Column: Form & Active config */}
-            <div className="twisty-column-left">
-              
-              {(notice || error) && (
-                <StatusMessage type={error ? 'error' : 'success'} message={error || notice} />
-              )}
+            {(notice || error) && (
+              <StatusMessage type={error ? 'error' : 'success'} message={error || notice} />
+            )}
 
-              {/* Active AI Provider info */}
-              <div className="dashboard-card-panel">
-                <div className="dashboard-card-header">
-                  <div>
-                    <h2>Active AI Provider</h2>
-                    <p>Current backend LLM integration configured on this server.</p>
+            {/* Vercel Card 1: AI Model Engine */}
+            <div className="settings-panel-card">
+              <div className="settings-panel-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <Cpu size={22} style={{ color: '#0d9488' }} />
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                    AI Model Engine
+                  </h2>
+                </div>
+
+                <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '2rem', marginTop: 0 }}>
+                  Manage the LLM provider utilized for manuscript claim isolation and semantic analysis.
+                </p>
+
+                {/* Big Selector Cards */}
+                <div className="settings-toggle-group">
+                  <div 
+                    className={`settings-toggle-card ${!useCustomAi ? 'active' : ''}`}
+                    onClick={handleResetAiSettings}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4>VeriScholar Managed Defaults</h4>
+                      {!useCustomAi && <CheckCircle size={16} style={{ color: '#0d9488' }} />}
+                    </div>
+                    <p>Use pre-configured OpenAI/Ollama LLM model instances hosted by the server.</p>
                   </div>
-                  <Cpu size={20} />
+
+                  <div 
+                    className={`settings-toggle-card ${useCustomAi ? 'active' : ''}`}
+                    onClick={() => setUseCustomAi(true)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4>Custom LLM Endpoint</h4>
+                      {useCustomAi && <CheckCircle size={16} style={{ color: '#0d9488' }} />}
+                    </div>
+                    <p>Integrate self-hosted Ollama or custom OpenAI API tokens directly.</p>
+                  </div>
                 </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem', marginTop: '0.5rem' }}>
-                  <FieldLabel label="Provider" value={config?.llm_provider || 'Unknown'} transform />
-                  <FieldLabel label="Model Name" value={config?.model_name || 'Unknown'} />
-                  <FieldLabel label="Source" value={config?.using_custom_ai ? 'Your custom settings' : 'VeriScholar default'} />
-                  <FieldLabel label="Endpoint" value={config?.endpoint || 'Unknown'} breakWords />
-                </div>
+
+                {/* Form fields shown if useCustomAi */}
+                {useCustomAi ? (
+                  <form onSubmit={handleSaveAiSettings} style={{ display: 'grid', gap: '1.25rem', marginTop: '1.5rem' }}>
+                    <div className="settings-input-row">
+                      <div style={fieldGroupStyle}>
+                        <label style={labelStyle} htmlFor="ai-endpoint">API Endpoint URI</label>
+                        <input
+                          id="ai-endpoint"
+                          type="url"
+                          value={form.endpoint}
+                          onChange={(event) => setForm((current) => ({ ...current, endpoint: event.target.value }))}
+                          placeholder="https://api.openai.com/v1"
+                          className="twisty-search-input"
+                          style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
+                          required
+                        />
+                      </div>
+
+                      <div style={fieldGroupStyle}>
+                        <label style={labelStyle} htmlFor="ai-model">Model Name</label>
+                        <input
+                          id="ai-model"
+                          type="text"
+                          value={form.model_name}
+                          onChange={(event) => setForm((current) => ({ ...current, model_name: event.target.value }))}
+                          placeholder="gpt-4o-mini"
+                          className="twisty-search-input"
+                          style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div style={fieldGroupStyle}>
+                      <label style={labelStyle} htmlFor="ai-api-key">
+                        API Secret Key {aiSettings?.api_key_configured ? '(configured)' : ''}
+                      </label>
+                      <input
+                        id="ai-api-key"
+                        type="password"
+                        value={form.api_key}
+                        onChange={(event) => setForm((current) => ({ ...current, api_key: event.target.value }))}
+                        placeholder={aiSettings?.api_key_configured ? '•••••••••••••••• (Leave blank to keep current key)' : 'Optional for local endpoints'}
+                        className="twisty-search-input"
+                        style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </form>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', background: 'rgba(15,23,42,0.02)', padding: '1.25rem', borderRadius: '12px', marginTop: '1.5rem' }}>
+                    <FieldLabel label="Active Provider" value={config?.llm_provider || 'Unknown'} transform />
+                    <FieldLabel label="Model Name" value={config?.model_name || 'Unknown'} />
+                    <FieldLabel label="Managed Endpoint" value={config?.endpoint || 'VeriScholar Default'} breakWords />
+                  </div>
+                )}
               </div>
 
-              {/* Custom AI Model Form */}
-              <div className="dashboard-card-panel">
-                <div className="dashboard-card-header">
-                  <div>
-                    <h2>Configure Custom AI Model</h2>
-                    <p>Redirect claim extraction LLM prompts to your own local or cloud endpoints.</p>
-                  </div>
-                  <KeyRound size={20} />
-                </div>
-
-                <form onSubmit={handleSaveAiSettings} style={{ display: 'grid', gap: '1.25rem', marginTop: '0.5rem' }}>
-                  <div style={fieldGroupStyle}>
-                    <label style={labelStyle} htmlFor="ai-endpoint">Endpoint URI</label>
-                    <input
-                      id="ai-endpoint"
-                      type="url"
-                      value={form.endpoint}
-                      onChange={(event) => setForm((current) => ({ ...current, endpoint: event.target.value }))}
-                      placeholder="https://api.openai.com/v1"
-                      className="twisty-search-input"
-                      style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
-                      required
-                    />
-                  </div>
-
-                  <div style={fieldGroupStyle}>
-                    <label style={labelStyle} htmlFor="ai-model">Model Name</label>
-                    <input
-                      id="ai-model"
-                      type="text"
-                      value={form.model_name}
-                      onChange={(event) => setForm((current) => ({ ...current, model_name: event.target.value }))}
-                      placeholder="gpt-4o-mini"
-                      className="twisty-search-input"
-                      style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
-                      required
-                    />
-                  </div>
-
-                  <div style={fieldGroupStyle}>
-                    <label style={labelStyle} htmlFor="ai-api-key">
-                      API Secret Key {aiSettings?.api_key_configured ? '(configured)' : ''}
-                    </label>
-                    <input
-                      id="ai-api-key"
-                      type="password"
-                      value={form.api_key}
-                      onChange={(event) => setForm((current) => ({ ...current, api_key: event.target.value }))}
-                      placeholder={aiSettings?.api_key_configured ? 'Leave blank to keep current key' : 'Optional for local endpoints'}
-                      className="twisty-search-input"
-                      style={{ width: '100%', borderRadius: '10px', padding: '0.75rem 1rem' }}
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginTop: '0.5rem' }}>
-                    <button className="btn-primary" type="submit" disabled={saving} style={{ borderRadius: '999px', padding: '0.65rem 1.75rem' }}>
-                      {saving ? 'Saving...' : 'Save Model'}
-                    </button>
-                    <button
-                      className="btn-secondary"
-                      type="button"
-                      onClick={handleResetAiSettings}
-                      disabled={resetting || !config?.using_custom_ai}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', borderRadius: '999px', padding: '0.65rem 1.5rem' }}
-                    >
-                      <RefreshCw size={15} />
-                      {resetting ? 'Resetting...' : 'Use Default'}
-                    </button>
-                  </div>
-                </form>
+              {/* Vercel Footer */}
+              <div className="settings-panel-footer">
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  {useCustomAi ? 'Quota consumption will be billed directly to your custom key.' : 'Managed server weights have rate-limiting quota buckets.'}
+                </span>
+                {useCustomAi && (
+                  <button 
+                    onClick={handleSaveAiSettings}
+                    disabled={saving} 
+                    className="btn-primary" 
+                    style={{ borderRadius: '999px', padding: '0.6rem 1.75rem', fontSize: '0.88rem' }}
+                  >
+                    {saving ? 'Saving...' : 'Save Configuration'}
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Right Column: Health & Delete */}
-            <div className="twisty-column-right">
-              
-              {/* Service Health */}
-              <div className="dashboard-card-panel">
-                <div className="dashboard-card-header">
-                  <div>
-                    <h2>Service Health</h2>
-                    <p>Current operational health of downstream microservices.</p>
-                  </div>
-                  <Server size={20} />
+            {/* Vercel Card 2: Service Health */}
+            <div className="settings-panel-card">
+              <div className="settings-panel-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <Server size={22} style={{ color: '#0d9488' }} />
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                    Service Infrastructure
+                  </h2>
                 </div>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <HealthItem name="Backend API Core" status={health?.status === 'ok'} />
-                  <HealthItem name="Neo4j Graph Database" status={health?.neo4j === 'connected'} />
-                  <HealthItem name="ChromaDB Vector Store" status={health?.chroma === 'connected'} />
+
+                <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '2rem', marginTop: 0 }}>
+                  Real-time connectivity status of downstream databases and internal API services.
+                </p>
+
+                <div className="settings-health-row">
+                  <div className="settings-health-card">
+                    <CheckCircle size={22} style={{ color: health?.status === 'ok' ? '#10b981' : '#f43f5e' }} />
+                    <strong>Backend REST Core</strong>
+                    <span>{health?.status === 'ok' ? 'Online' : 'Offline'}</span>
+                  </div>
+
+                  <div className="settings-health-card">
+                    <Database size={22} style={{ color: health?.neo4j === 'connected' ? '#10b981' : '#f43f5e' }} />
+                    <strong>Neo4j Graph</strong>
+                    <span>{health?.neo4j === 'connected' ? 'Connected' : 'Disconnected'}</span>
+                  </div>
+
+                  <div className="settings-health-card">
+                    <Server size={22} style={{ color: health?.chroma === 'connected' ? '#10b981' : '#f43f5e' }} />
+                    <strong>Chroma Vector DB</strong>
+                    <span>{health?.chroma === 'connected' ? 'Connected' : 'Disconnected'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Vercel Card 3: Danger Zone */}
+            <div className="settings-panel-card" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+              <div className="settings-panel-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <ShieldAlert size={22} style={{ color: 'var(--accent-rose)' }} />
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                    Danger Zone
+                  </h2>
+                </div>
+
+                <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '2rem', marginTop: 0 }}>
+                  Permanently delete account workspace details. This removes all analysis runs, Neo4j citation cartels, Chroma vector graphs, and API keys.
+                </p>
+
+                <div style={fieldGroupStyle}>
+                  <label style={labelStyle} htmlFor="delete-confirm">Type DELETE to confirm deletion</label>
+                  <input
+                    id="delete-confirm"
+                    type="text"
+                    value={deleteConfirm}
+                    onChange={(event) => setDeleteConfirm(event.target.value)}
+                    className="twisty-search-input"
+                    style={{ width: '100%', maxwidth: '320px', borderRadius: '10px', padding: '0.75rem 1rem' }}
+                    autoComplete="off"
+                  />
                 </div>
               </div>
 
-              {/* Delete Account */}
-              <div className="dashboard-card-panel" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
-                <div className="dashboard-card-header">
-                  <div>
-                    <h2>Danger Zone</h2>
-                    <p>Permanently remove account workspace details.</p>
-                  </div>
-                  <ShieldAlert size={20} style={{ color: 'var(--accent-rose)' }} />
-                </div>
-
-                <form onSubmit={handleDeleteAccount} style={{ display: 'grid', gap: '1rem', marginTop: '0.5rem' }}>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: 1.5, margin: 0 }}>
-                    Deletes all analysis jobs, Neo4j citation networks, Chroma vectors, and generated API authentication credentials.
-                  </p>
-                  <div style={fieldGroupStyle}>
-                    <label style={labelStyle} htmlFor="delete-confirm">Type DELETE to confirm</label>
-                    <input
-                      id="delete-confirm"
-                      type="text"
-                      value={deleteConfirm}
-                      onChange={(event) => setDeleteConfirm(event.target.value)}
-                      className="twisty-search-input"
-                      style={{ width: '100%', borderRadius: '10px', padding: '0.65rem 1rem' }}
-                      autoComplete="off"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={deleteConfirm !== 'DELETE' || deleting}
-                    style={deleteButtonStyle(deleteConfirm === 'DELETE' && !deleting)}
-                  >
-                    <Trash2 size={15} />
-                    {deleting ? 'Deleting...' : 'Delete Workspace Data'}
-                  </button>
-                </form>
+              <div className="settings-panel-footer" style={{ background: 'rgba(239, 68, 68, 0.02)', borderTopColor: 'rgba(239, 68, 68, 0.1)' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', fontWeight: 500 }}>
+                  This action is irreversible and deletes everything.
+                </span>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirm !== 'DELETE' || deleting}
+                  style={deleteButtonStyle(deleteConfirm === 'DELETE' && !deleting)}
+                >
+                  <Trash2 size={15} />
+                  {deleting ? 'Deleting...' : 'Delete Workspace Data'}
+                </button>
               </div>
             </div>
 
@@ -387,36 +434,16 @@ function FieldLabel({ label, value, transform = false, breakWords = false }) {
     <div>
       <label style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>{label}</label>
       <p style={{
-        fontSize: '1rem',
+        fontSize: '0.95rem',
         fontWeight: 700,
         color: 'var(--text-primary)',
         marginTop: '0.2rem',
         textTransform: transform ? 'capitalize' : 'none',
         wordBreak: breakWords ? 'break-all' : 'normal',
+        margin: 0
       }}>
         {value}
       </p>
-    </div>
-  );
-}
-
-function HealthItem({ name, status }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.85rem 0', borderBottom: '1px solid rgba(15, 23, 42, 0.05)' }}>
-      <span style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>{name}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-        {status ? (
-          <>
-            <CheckCircle size={16} color="var(--accent-emerald)" />
-            <span style={{ color: 'var(--accent-emerald)', fontSize: '0.85rem', fontWeight: 700 }}>Online</span>
-          </>
-        ) : (
-          <>
-            <XCircle size={16} color="var(--accent-rose)" />
-            <span style={{ color: 'var(--accent-rose)', fontSize: '0.85rem', fontWeight: 700 }}>Offline</span>
-          </>
-        )}
-      </div>
     </div>
   );
 }
@@ -432,7 +459,7 @@ function StatusMessage({ type, message }) {
       padding: '0.9rem 1.25rem',
       fontWeight: 600,
       fontSize: '0.9rem',
-      marginBottom: '1rem'
+      marginBottom: '1.5rem'
     }}>
       {message}
     </div>
@@ -468,7 +495,7 @@ function deleteButtonStyle(enabled) {
     gap: '0.5rem',
     border: 'none',
     borderRadius: '999px',
-    padding: '0.7rem 1.5rem',
+    padding: '0.65rem 1.75rem',
     fontWeight: 700,
     fontSize: '0.88rem',
     color: '#fff',

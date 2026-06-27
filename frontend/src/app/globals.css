@@ -2792,3 +2792,118 @@ main {
     gap: 2rem;
   }
 }
+
+/* Vercel-style Settings Redesign Classes */
+
+.settings-panel-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 18px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+  box-shadow: 0 4px 30px rgba(15, 23, 42, 0.015);
+}
+
+.settings-panel-body {
+  padding: 2.25rem;
+}
+
+.settings-panel-footer {
+  padding: 1.25rem 2.25rem;
+  background: rgba(15, 23, 42, 0.015);
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-toggle-card {
+  border: 2px solid rgba(15, 23, 42, 0.05);
+  border-radius: 14px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-toggle-card:hover {
+  border-color: rgba(13, 148, 136, 0.3);
+}
+
+.settings-toggle-card.active {
+  border-color: #0d9488;
+  background: rgba(13, 148, 136, 0.02);
+}
+
+.settings-toggle-card h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-toggle-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.settings-health-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.settings-health-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-health-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15,23,42,0.02);
+}
+
+.settings-health-card strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.settings-health-card span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.settings-input-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .settings-toggle-group,
+  .settings-health-row,
+  .settings-input-row {
+    grid-template-columns: 1fr;
+  }
+}

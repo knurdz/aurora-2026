@@ -50,6 +50,13 @@ function DashboardContent() {
   const [activeView, setActiveView] = useState('Overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+
+  const handleCopyCommand = (text, index) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   const apiBase = getApiBase();
   const displayBase = apiBase === '/api' ? 'https://verischolar.knurdz.org/api' : apiBase;
@@ -266,46 +273,46 @@ function DashboardContent() {
 
                   {/* Connect + Upgrade row */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
-                    {/* Database Nodes Health */}
+                    {/* Workspace Quota Limits */}
                     <div className="twisty-connect-card">
                       <div className="twisty-connect-header">
-                        <h3>Database Nodes</h3>
-                        <div style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
-                          <div className="status-dot-pulse status-success" style={{ position: 'static' }} /> Online
-                        </div>
+                        <h3>Workspace Quotas</h3>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#10b981' }}>Active</span>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div className="twisty-reviewer-row">
-                          <div className="twisty-reviewer-profile">
-                            <div className="twisty-project-icon-box" style={{ background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6' }}>
-                              <Network size={20} />
-                            </div>
-                            <div className="twisty-reviewer-info">
-                              <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                                Neo4j Graph Database 
-                                <span className={`twisty-role-badge ${health?.neo4j === 'connected' ? 'role-blue' : 'role-orange'}`}>
-                                  {health?.neo4j === 'connected' ? 'Connected' : 'Offline'}
-                                </span>
-                              </strong>
-                              <span>Citation cartels graph</span>
-                            </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.25rem' }}>
+                        {/* Daily Audits */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Daily Audits Quota</span>
+                            <strong style={{ color: 'var(--text-primary)' }}>
+                              {summary?.usage?.total_analyses ?? 0} / 50 files
+                            </strong>
+                          </div>
+                          <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${Math.min(100, ((summary?.usage?.total_analyses ?? 0) / 50) * 100)}%`,
+                              height: '100%',
+                              background: 'linear-gradient(90deg, #10b981, #0ea5e9)',
+                              borderRadius: '3px'
+                            }} />
                           </div>
                         </div>
 
-                        <div className="twisty-reviewer-row">
-                          <div className="twisty-reviewer-profile">
-                            <div className="twisty-project-icon-box" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
-                              <FileScan size={20} />
-                            </div>
-                            <div className="twisty-reviewer-info">
-                              <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                                Chroma Vector DB
-                                <span className={`twisty-role-badge ${health?.chroma === 'connected' ? 'role-blue' : 'role-orange'}`}>
-                                  {health?.chroma === 'connected' ? 'Connected' : 'Offline'}
-                                </span>
-                              </strong>
-                              <span>Claims semantic store</span>
-                            </div>
+                        {/* API Requests */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>API Rate Limit (hour)</span>
+                            <strong style={{ color: 'var(--text-primary)' }}>
+                              {summary?.usage?.quota_windows?.[0]?.remaining ?? 58} / {summary?.usage?.quota_windows?.[0]?.limit ?? 60} req
+                            </strong>
+                          </div>
+                          <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${Math.min(100, (((summary?.usage?.quota_windows?.[0]?.remaining ?? 58) / (summary?.usage?.quota_windows?.[0]?.limit ?? 60)) * 100))}%`,
+                              height: '100%',
+                              background: 'linear-gradient(90deg, #6366f1, #3b82f6)',
+                              borderRadius: '3px'
+                            }} />
                           </div>
                         </div>
                       </div>
@@ -601,15 +608,65 @@ function DashboardContent() {
                       </div>
                       <Terminal size={20} />
                     </div>
-                    <pre>{`curl -X POST ${displayBase}/v1/analyses \\
-  -H "Authorization: Bearer vs_live_..." \\
-  -F "file=@paper.pdf"
 
-curl ${displayBase}/v1/analyses/{analysis_id} \\
-  -H "Authorization: Bearer vs_live_..."
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.75rem' }}>
+                      <div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                          Submit Manuscript (POST)
+                        </span>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                            {`curl -X POST ${displayBase}/v1/analyses -H "Authorization: Bearer vs_live_..." -F "file=@paper.pdf"`}
+                          </code>
+                          <button 
+                            type="button" 
+                            onClick={() => handleCopyCommand(`curl -X POST ${displayBase}/v1/analyses -H "Authorization: Bearer vs_live_..." -F "file=@paper.pdf"`, 0)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            title="Copy command"
+                          >
+                            {copiedIndex === 0 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}
+                          </button>
+                        </div>
+                      </div>
 
-# MCP Integration Endpoint
-${displayBase}/mcp/`}</pre>
+                      <div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                          Fetch Analysis Status (GET)
+                        </span>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                            {`curl ${displayBase}/v1/analyses/{analysis_id} -H "Authorization: Bearer vs_live_..."`}
+                          </code>
+                          <button 
+                            type="button" 
+                            onClick={() => handleCopyCommand(`curl ${displayBase}/v1/analyses/{analysis_id} -H "Authorization: Bearer vs_live_..."`, 1)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            title="Copy command"
+                          >
+                            {copiedIndex === 1 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                          MCP Integration Endpoint
+                        </span>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                            {`${displayBase}/mcp/`}
+                          </code>
+                          <button 
+                            type="button" 
+                            onClick={() => handleCopyCommand(`${displayBase}/mcp/`, 2)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            title="Copy command"
+                          >
+                            {copiedIndex === 2 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                     <div className="quota-list" style={{ marginTop: '0.5rem' }}>
                       {(summary?.usage?.quota_windows || []).map((quota) => (
                         <div key={quota.bucket} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
