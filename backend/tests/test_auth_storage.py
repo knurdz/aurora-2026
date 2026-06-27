@@ -29,6 +29,7 @@ fastapi_module.Header = passthrough_dependency
 fastapi_module.HTTPException = HTTPException
 fastapi_module.Request = object
 fastapi_module.Response = object
+fastapi_module.UploadFile = object
 fastapi_module.status = types.SimpleNamespace(HTTP_401_UNAUTHORIZED=401)
 sys.modules.setdefault("fastapi", fastapi_module)
 sys.modules.setdefault("httpx", types.ModuleType("httpx"))
@@ -124,6 +125,29 @@ class AuthStorageTests(unittest.TestCase):
 
         self.assertTrue(self.store.revoke_api_key(user["id"], created["id"]))
         self.assertIsNone(self.store.get_api_key_by_hash(key_hash))
+
+    def test_verify_api_key_returns_context_and_touches_usage(self):
+        user = self.create_user()
+        raw_key = auth.generate_api_key()
+        created = self.store.create_api_key(user["id"], "MCP key", raw_key[:18], auth.hash_api_key(raw_key))
+
+        context = auth.verify_api_key(raw_key)
+
+        self.assertEqual(context["api_key_id"], created["id"])
+        self.assertEqual(context["user_id"], user["id"])
+        touched = self.store.get_api_key_for_user(user["id"], created["id"])
+        self.assertEqual(touched["usage_total"], 1)
+
+    def test_verify_api_key_rejects_missing_malformed_and_revoked_keys(self):
+        user = self.create_user()
+        raw_key = auth.generate_api_key()
+        created = self.store.create_api_key(user["id"], "MCP key", raw_key[:18], auth.hash_api_key(raw_key))
+
+        self.assertIsNone(auth.verify_api_key(None))
+        self.assertIsNone(auth.verify_api_key("not-a-verischolar-key"))
+
+        self.assertTrue(self.store.revoke_api_key(user["id"], created["id"]))
+        self.assertIsNone(auth.verify_api_key(raw_key))
 
     def test_analysis_ownership_is_enforced_by_queries(self):
         owner = self.create_user("owner-sub", "owner@example.com")

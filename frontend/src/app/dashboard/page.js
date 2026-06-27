@@ -182,8 +182,8 @@ function DashboardContent() {
               <div className="glass-panel quickstart-panel">
                 <div className="panel-heading">
                   <div>
-                    <h2>REST Quick Start</h2>
-                    <p>Submit an analysis asynchronously, then poll or stream progress.</p>
+                    <h2>API Quick Start</h2>
+                    <p>Submit analyses over REST or connect MCP clients with the same key.</p>
                   </div>
                   <Clipboard size={22} />
                 </div>
@@ -195,7 +195,11 @@ curl ${displayBase}/v1/analyses/{analysis_id} \\
   -H "Authorization: Bearer vs_live_..."
 
 curl -N ${displayBase}/v1/analyses/{analysis_id}/events \\
-  -H "Authorization: Bearer vs_live_..."`}</pre>
+  -H "Authorization: Bearer vs_live_..."
+
+# MCP Streamable HTTP endpoint
+${displayBase}/mcp
+Authorization: Bearer vs_live_...`}</pre>
                 <div className="quota-list">
                   {(summary?.usage?.quota_windows || []).map((quota) => (
                     <div key={quota.bucket}>

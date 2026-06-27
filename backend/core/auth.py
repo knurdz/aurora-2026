@@ -144,16 +144,35 @@ async def require_api_key(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required")
 
     raw_key = authorization.split(" ", 1)[1].strip()
-    if not raw_key.startswith("vs_live_"):
+    key_context = verify_api_key(raw_key)
+    if not key_context:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+
+    return key_context
+
+
+def verify_api_key(raw_key: Optional[str]) -> Optional[Dict[str, Any]]:
+    if not raw_key or not raw_key.startswith("vs_live_"):
+        return None
 
     key_hash = hash_api_key(raw_key)
     key_context = get_store().get_api_key_by_hash(key_hash)
     if not key_context:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+        return None
 
     get_store().touch_api_key(int(key_context["api_key_id"]))
     return key_context
+
+
+def api_context_from_access_claims(claims: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    claims = claims or {}
+    try:
+        return {
+            "user_id": int(claims["user_id"]),
+            "api_key_id": int(claims["api_key_id"]),
+        }
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key context") from exc
 
 
 def rate_limit_headers(result: Dict[str, Any]) -> Dict[str, str]:

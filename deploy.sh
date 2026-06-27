@@ -81,6 +81,9 @@ FRONTEND_BASE_URL=https://$DOMAIN
 ALLOWED_CORS_ORIGINS=https://$DOMAIN
 ALLOWED_CSRF_ORIGINS=https://$DOMAIN
 APP_DB_PATH=/data/verischolar.sqlite3
+MCP_SERVER_URL=https://$DOMAIN/api/mcp
+MCP_ALLOWED_HOSTS=$DOMAIN,localhost:8000,127.0.0.1:8000
+MAX_UPLOAD_BYTES=52428800
 GOOGLE_OAUTH_CLIENT_ID=$google_client_id
 GOOGLE_OAUTH_CLIENT_SECRET=$google_client_secret
 GOOGLE_OAUTH_REDIRECT_URI=https://$DOMAIN/api/auth/google/callback
@@ -114,6 +117,9 @@ append_env_if_missing "FRONTEND_BASE_URL" "https://$DOMAIN"
 append_env_if_missing "ALLOWED_CORS_ORIGINS" "https://$DOMAIN"
 append_env_if_missing "ALLOWED_CSRF_ORIGINS" "https://$DOMAIN"
 append_env_if_missing "APP_DB_PATH" "/data/verischolar.sqlite3"
+append_env_if_missing "MCP_SERVER_URL" "https://$DOMAIN/api/mcp"
+append_env_if_missing "MCP_ALLOWED_HOSTS" "$DOMAIN,localhost:8000,127.0.0.1:8000"
+append_env_if_missing "MAX_UPLOAD_BYTES" "52428800"
 append_env_if_missing "GOOGLE_OAUTH_REDIRECT_URI" "https://$DOMAIN/api/auth/google/callback"
 append_env_if_missing "SESSION_SECRET" "$(generate_secret)"
 append_env_if_missing "SESSION_COOKIE_SECURE" "true"

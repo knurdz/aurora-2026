@@ -1,6 +1,4 @@
-import hashlib
-import secrets
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any, Dict, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
@@ -15,7 +13,6 @@ from core.auth import (
     assert_safe_origin,
     clear_session_cookie,
     create_login_session,
-    enforce_limits,
     exchange_google_code,
     frontend_redirect_url,
     generate_api_key,
@@ -33,10 +30,20 @@ from core.auth import (
     validate_security_configuration,
     verify_google_id_token,
 )
+from core.analysis_service import (
+    analysis_payload,
+    analysis_summary,
+    background_task_scheduler,
+    create_analysis_job_from_upload,
+    enforce_read_limit,
+    get_analysis_payload_for_user,
+    list_analysis_summaries_for_user,
+    submission_limit_specs,
+)
 from core.config import settings
-from core.langgraph_app import DocumentState, register_progress_callback, unregister_progress_callback, verischolar_graph
+from core.mcp_server import mcp_asgi_app, verischolar_mcp
 from core.progress_manager import progress_manager
-from core.storage import SQLiteStore, decode_result_json, utc_now_iso
+from core.storage import SQLiteStore
 
 
 neo4j_driver = None
@@ -77,7 +84,10 @@ async def lifespan(app: FastAPI):
         port=settings.chroma_port,
         settings=ChromaSettings(anonymized_telemetry=False),
     )
-    yield
+    async with AsyncExitStack() as stack:
+        if verischolar_mcp is not None:
+            await stack.enter_async_context(verischolar_mcp.session_manager.run())
+        yield
     if neo4j_driver:
         neo4j_driver.close()
     store.close()
@@ -96,176 +106,17 @@ app.add_middleware(
     allow_origins=split_csv(settings.allowed_cors_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "MCP-Protocol-Version", "Mcp-Session-Id"],
+    expose_headers=["Mcp-Session-Id", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
 
-
-def submission_limit_specs() -> list[tuple[str, int, int]]:
-    return [
-        ("analysis_per_hour", 60 * 60, settings.rate_limit_analysis_per_hour),
-        ("analysis_per_day", 60 * 60 * 24, settings.rate_limit_analysis_per_day),
-    ]
-
-
-def read_limit_specs() -> list[tuple[str, int, int]]:
-    return [("reads_per_minute", 60, settings.rate_limit_reads_per_minute)]
+if mcp_asgi_app is not None:
+    app.mount("/mcp", mcp_asgi_app)
 
 
 def apply_headers(response: Response, headers: Dict[str, str]) -> None:
     for key, value in headers.items():
         response.headers[key] = value
-
-
-def validate_upload(file: UploadFile, content: bytes) -> None:
-    filename = file.filename or "document"
-    lower_name = filename.lower()
-    if not lower_name.endswith((".pdf", ".docx")):
-        raise HTTPException(status_code=400, detail="Only PDF and DOCX uploads are supported")
-    if not content:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty")
-
-
-def analysis_payload(record: Dict[str, Any]) -> Dict[str, Any]:
-    result = decode_result_json(record)
-    if result:
-        result.setdefault("status", record["status"])
-        result.setdefault("doc_id", record["id"])
-        result.setdefault("analysis_id", record["id"])
-        return result
-
-    payload: Dict[str, Any] = {
-        "status": record["status"],
-        "doc_id": record["id"],
-        "analysis_id": record["id"],
-        "filename": record["filename"],
-        "timestamp": record["created_at"],
-        "source": record["source"],
-    }
-    if record["status"] == "failed":
-        payload["error"] = record.get("error") or "Analysis failed"
-    return payload
-
-
-def analysis_summary(record: Dict[str, Any]) -> Dict[str, Any]:
-    payload = analysis_payload(record)
-    return {
-        "doc_id": payload.get("doc_id"),
-        "analysis_id": payload.get("analysis_id"),
-        "filename": payload.get("filename"),
-        "status": payload.get("status"),
-        "integrity_score": payload.get("integrity_score"),
-        "integrity_verdict": payload.get("integrity_verdict"),
-        "timestamp": payload.get("timestamp") or record.get("created_at"),
-        "source": record.get("source"),
-    }
-
-
-def emit_progress(analysis_id: str, message: str) -> None:
-    get_store().append_analysis_log(analysis_id, message)
-    progress_manager.emit(analysis_id, message)
-
-
-def build_analysis_result(analysis_id: str, filename: str, result: Dict[str, Any]) -> Dict[str, Any]:
-    integrity = result.get("integrity_score") or {}
-    graph = result.get("graph_results") or {}
-    fraud = result.get("fraud_results") or {}
-    community = graph.get("community_analysis", {})
-    graph_inputs = result.get("reference_entries") or result.get("citation_mentions") or result["citations"]
-
-    return {
-        "status": "processed",
-        "doc_id": analysis_id,
-        "analysis_id": analysis_id,
-        "filename": filename,
-        "timestamp": utc_now_iso(),
-        "pages_parsed": len(result["pages"]),
-        "claims_found": len(result["claims"]),
-        "citations_found": len(graph_inputs),
-        "reference_count": len(result.get("reference_entries", [])),
-        "citation_mentions_found": len(result.get("citation_mentions", [])),
-        "integrity_score": integrity.get("score"),
-        "integrity_verdict": integrity.get("verdict"),
-        "score_breakdown": integrity.get("breakdown", {}),
-        "fraud_risk": fraud.get("overall_fraud_risk"),
-        "grim_failures": fraud.get("grim", {}).get("failure_count", 0),
-        "p_curve_verdict": fraud.get("p_curve", {}).get("verdict"),
-        "funding_conflicts": fraud.get("funding_conflicts", {}).get("conflict_count", 0),
-        "citations_resolved": graph.get("resolved_count", 0),
-        "retracted_papers": community.get("retracted_papers", []),
-        "cartel_risk": community.get("cartel_risk"),
-        "suspicious_clusters": len(community.get("suspicious_clusters", [])),
-        "audit_report": result.get("audit_report"),
-    }
-
-
-def run_pipeline(analysis_id: str, filename: str, content: bytes) -> None:
-    register_progress_callback(analysis_id, lambda msg: emit_progress(analysis_id, msg))
-    try:
-        initial_state: DocumentState = {
-            "filename": filename,
-            "file_bytes": content,
-            "doc_id": analysis_id,
-            "document_text": "",
-            "pages": [],
-            "claims": [],
-            "citations": [],
-            "citation_mentions": [],
-            "reference_entries": [],
-            "graph_results": None,
-            "fraud_results": None,
-            "integrity_score": None,
-            "audit_report": None,
-        }
-        result = verischolar_graph.invoke(initial_state)
-        analysis_result = build_analysis_result(analysis_id, filename, result)
-        get_store().set_analysis_result(analysis_id, analysis_result)
-        emit_progress(analysis_id, "🏁 Complete!")
-    except Exception as exc:
-        import traceback
-
-        traceback.print_exc()
-        get_store().set_analysis_failed(analysis_id, str(exc))
-        emit_progress(analysis_id, f"❌ Error during analysis: {str(exc)}")
-    finally:
-        unregister_progress_callback(analysis_id)
-
-
-async def create_analysis_job(
-    *,
-    background_tasks: BackgroundTasks,
-    response: Response,
-    file: UploadFile,
-    owner_user_id: int,
-    api_key_id: Optional[int],
-    source: str,
-    rate_subject: str,
-) -> Dict[str, Any]:
-    content = await file.read()
-    validate_upload(file, content)
-    content_hash = hashlib.sha256(content).hexdigest()
-
-    reusable = get_store().find_reusable_analysis(owner_user_id, content_hash)
-    if reusable:
-        return analysis_payload(reusable)
-
-    if get_store().count_active_analyses(owner_user_id) >= settings.rate_limit_active_analyses_per_user:
-        raise HTTPException(status_code=429, detail="You already have an active analysis running")
-
-    headers = enforce_limits(rate_subject, submission_limit_specs())
-    apply_headers(response, headers)
-
-    analysis_id = secrets.token_hex(16)
-    get_store().create_analysis(
-        analysis_id=analysis_id,
-        owner_user_id=owner_user_id,
-        api_key_id=api_key_id,
-        filename=file.filename or "document",
-        source=source,
-        content_hash=content_hash,
-    )
-    progress_manager.initialize(analysis_id)
-    background_tasks.add_task(run_pipeline, analysis_id, file.filename or "document", content)
-    return {"status": "processing", "doc_id": analysis_id, "analysis_id": analysis_id}
 
 
 @app.get("/health")
@@ -411,15 +262,16 @@ async def analyze_document(
     user: Dict[str, Any] = Depends(require_user),
 ):
     assert_safe_origin(request)
-    return await create_analysis_job(
-        background_tasks=background_tasks,
-        response=response,
+    submission = await create_analysis_job_from_upload(
         file=file,
         owner_user_id=int(user["id"]),
         api_key_id=None,
         source="dashboard",
         rate_subject=f"user:{user['id']}",
+        schedule_pipeline=background_task_scheduler(background_tasks),
     )
+    apply_headers(response, submission.headers)
+    return submission.payload
 
 
 @app.get("/events/{analysis_id}")
@@ -437,16 +289,16 @@ async def v1_create_analysis(
     file: UploadFile = File(...),
     api_context: Dict[str, Any] = Depends(require_api_key),
 ):
-    payload = await create_analysis_job(
-        background_tasks=background_tasks,
-        response=response,
+    submission = await create_analysis_job_from_upload(
         file=file,
         owner_user_id=int(api_context["user_id"]),
         api_key_id=int(api_context["api_key_id"]),
         source="api",
         rate_subject=f"api_key:{api_context['api_key_id']}",
+        schedule_pipeline=background_task_scheduler(background_tasks),
     )
-    return JSONResponse(content=payload, status_code=202, headers=dict(response.headers))
+    apply_headers(response, submission.headers)
+    return JSONResponse(content=submission.payload, status_code=202, headers=dict(response.headers))
 
 
 @app.get("/v1/analyses")
@@ -454,10 +306,9 @@ async def v1_list_analyses(
     response: Response,
     api_context: Dict[str, Any] = Depends(require_api_key),
 ):
-    headers = enforce_limits(f"api_key:{api_context['api_key_id']}:reads", read_limit_specs())
+    headers = enforce_read_limit(int(api_context["api_key_id"]))
     apply_headers(response, headers)
-    rows = get_store().list_analyses_for_user(int(api_context["user_id"]), limit=50)
-    return {"analyses": [analysis_summary(row) for row in rows]}
+    return {"analyses": list_analysis_summaries_for_user(int(api_context["user_id"]), limit=50)}
 
 
 @app.get("/v1/analyses/{analysis_id}/events")
@@ -466,7 +317,7 @@ async def v1_events_endpoint(
     response: Response,
     api_context: Dict[str, Any] = Depends(require_api_key),
 ):
-    headers = enforce_limits(f"api_key:{api_context['api_key_id']}:reads", read_limit_specs())
+    headers = enforce_read_limit(int(api_context["api_key_id"]))
     apply_headers(response, headers)
     record = get_store().get_analysis_for_user(int(api_context["user_id"]), analysis_id)
     if not record:
@@ -480,12 +331,9 @@ async def v1_get_analysis(
     response: Response,
     api_context: Dict[str, Any] = Depends(require_api_key),
 ):
-    headers = enforce_limits(f"api_key:{api_context['api_key_id']}:reads", read_limit_specs())
+    headers = enforce_read_limit(int(api_context["api_key_id"]))
     apply_headers(response, headers)
-    record = get_store().get_analysis_for_user(int(api_context["user_id"]), analysis_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-    return analysis_payload(record)
+    return get_analysis_payload_for_user(int(api_context["user_id"]), analysis_id)
 
 
 async def event_generator(analysis_id: str):

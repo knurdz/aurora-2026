@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     allowed_cors_origins: str = "https://verischolar.knurdz.org,http://localhost:3000,http://127.0.0.1:3000"
     allowed_csrf_origins: str = "https://verischolar.knurdz.org,http://localhost:3000,http://127.0.0.1:3000"
     app_db_path: str = "/data/verischolar.sqlite3"
+    mcp_server_url: str = "https://verischolar.knurdz.org/api/mcp"
+    mcp_allowed_hosts: str = "verischolar.knurdz.org,localhost:8000,127.0.0.1:8000"
+    max_upload_bytes: int = 52_428_800
 
     # Google OAuth web application credentials
     google_oauth_client_id: str = ""

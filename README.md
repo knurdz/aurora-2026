@@ -46,6 +46,16 @@ curl http://localhost:8000/v1/analyses/<analysis_id> \
   -H "Authorization: Bearer vs_live_..."
 ```
 
+MCP clients can use the same dashboard-created API keys with the Streamable HTTP endpoint:
+
+```bash
+# Local backend endpoint
+http://localhost:8000/mcp
+
+# Production endpoint through Nginx
+https://verischolar.knurdz.org/api/mcp
+```
+
 ## API
 
 ### Authenticated Browser Endpoints
@@ -73,6 +83,18 @@ All public v1 endpoints require `Authorization: Bearer <api_key>`.
 - `GET /v1/analyses`: list analyses owned by the API key's user.
 - `GET /v1/analyses/{analysis_id}`: fetch status, result, score, and report.
 - `GET /v1/analyses/{analysis_id}/events`: stream analysis progress logs with SSE.
+
+### MCP API
+
+The MCP server is available at `POST /mcp` locally and `/api/mcp` through Nginx. It uses Streamable HTTP and requires `Authorization: Bearer <api_key>` on every request.
+
+Available tools:
+
+- `verischolar_submit_analysis`: submit a PDF/DOCX using `filename`, `content_base64`, and optional `mime_type`.
+- `verischolar_list_analyses`: list recent analyses for the API key's user.
+- `verischolar_get_analysis`: fetch one analysis by `analysis_id`.
+- `verischolar_get_analysis_events`: fetch stored progress events from a zero-based `after_index`.
+- `verischolar_wait_for_analysis`: wait briefly for new progress events or completion.
 
 Rate-limit headers are returned on limited endpoints:
 
@@ -122,6 +144,9 @@ When the frontend is served through Nginx, public API calls are routed through `
   - `ALLOWED_CORS_ORIGINS`
   - `ALLOWED_CSRF_ORIGINS`
   - `APP_DB_PATH` (default `/data/verischolar.sqlite3`)
+  - `MCP_SERVER_URL` (default `https://verischolar.knurdz.org/api/mcp`)
+  - `MCP_ALLOWED_HOSTS` (default `verischolar.knurdz.org,localhost:8000,127.0.0.1:8000`)
+  - `MAX_UPLOAD_BYTES` (default `52428800`)
   - `GOOGLE_OAUTH_CLIENT_ID`
   - `GOOGLE_OAUTH_CLIENT_SECRET`
   - `GOOGLE_OAUTH_REDIRECT_URI`
