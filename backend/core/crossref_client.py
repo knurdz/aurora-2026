@@ -1,6 +1,7 @@
 import httpx
 import hashlib
 from typing import Optional, Dict, Any, List
+from core.config import settings
 
 CROSSREF_BASE = "https://api.crossref.org"
 # Polite pool: include mailto for dedicated server + better rate limits (~50 req/sec)
@@ -16,6 +17,21 @@ def resolve_doi(doi: str) -> Optional[Dict[str, Any]]:
             r = client.get(url, headers=HEADERS)
             if r.status_code == 200:
                 return _parse_work(r.json().get("message", {}))
+    except Exception:
+        pass
+    return None
+
+
+async def resolve_doi_async(
+    doi: str,
+    client: httpx.AsyncClient,
+) -> Optional[Dict[str, Any]]:
+    """Resolve a single DOI using a shared async CrossRef client."""
+    url = f"{CROSSREF_BASE}/works/{doi}"
+    try:
+        r = await client.get(url, headers=HEADERS, timeout=settings.citation_request_timeout)
+        if r.status_code == 200:
+            return _parse_work(r.json().get("message", {}))
     except Exception:
         pass
     return None
@@ -41,6 +57,39 @@ def search_by_query(query: str, limit: int = 3) -> List[Dict[str, Any]]:
             if r.status_code == 200:
                 items = r.json().get("message", {}).get("items", [])
                 return [_parse_work(item) for item in items]
+    except Exception:
+        pass
+    return []
+
+
+async def search_by_query_async(
+    query: str,
+    client: httpx.AsyncClient,
+    limit: int = 3,
+) -> List[Dict[str, Any]]:
+    """
+    Async fallback search for citations without DOI metadata.
+    Uses the same parser as the synchronous client for consistent records.
+    """
+    url = f"{CROSSREF_BASE}/works"
+    params = {
+        "query": query,
+        "rows": limit,
+        "select": (
+            "DOI,title,author,published-print,published-online,"
+            "container-title,is-referenced-by-count,funder,update-to,reference,type"
+        ),
+    }
+    try:
+        r = await client.get(
+            url,
+            headers=HEADERS,
+            params=params,
+            timeout=settings.citation_request_timeout,
+        )
+        if r.status_code == 200:
+            items = r.json().get("message", {}).get("items", [])
+            return [_parse_work(item) for item in items]
     except Exception:
         pass
     return []

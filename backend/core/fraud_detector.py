@@ -119,8 +119,8 @@ def _run_grim(stats: Dict[str, Any]) -> Dict[str, Any]:
     """
     Run GRIM on every (mean, n) pair found in the document.
 
-    Uses claim_stat_pairs first (precise proximity), then falls back to
-    all_means × all_ns cross-product for single-mean / single-n documents.
+    Uses claim_stat_pairs first (precise proximity), then falls back only when
+    the document has exactly one extracted mean and one extracted n.
     """
     failures: List[Dict] = []
     passed: List[Dict] = []
@@ -132,14 +132,12 @@ def _run_grim(stats: Dict[str, Any]) -> Dict[str, Any]:
         if p.get("mean") is not None and p.get("n") is not None
     ]
 
-    # If proximity pairing found nothing, try all means × first n
+    # If proximity pairing found nothing, try the single unambiguous document pair.
     if not tested_pairs:
         all_means = stats.get("means", [])
         all_ns = stats.get("sample_sizes", [])
-        if all_means and all_ns:
-            for mean_obj in all_means:
-                for n in all_ns:
-                    tested_pairs.append((mean_obj, n, ""))
+        if len(all_means) == 1 and len(all_ns) == 1:
+            tested_pairs.append((all_means[0], all_ns[0], ""))
 
     for mean_obj, n, claim_text in tested_pairs:
         if isinstance(mean_obj, dict):
@@ -181,24 +179,32 @@ def _run_grim(stats: Dict[str, Any]) -> Dict[str, Any]:
 def _grim_check(mean: float, n: int, decimal_places: int) -> Dict:
     """
     GRIM formula:
-        expected_sum = mean × n
-        If expected_sum rounds to an integer within tolerance → PASS
-        Otherwise → FAIL
-
-    Tolerance = 0.5 / 10^decimal_places  (half a unit in last place, both sides)
+        reported mean M rounded to d decimals implies:
+        M - 0.5 * 10^-d <= true_mean < M + 0.5 * 10^-d
+        GRIM passes if any integer total score can fall inside that rounded
+        interval after multiplying by n.
     """
     expected_sum = mean * n
     nearest_int = round(expected_sum)
-    tolerance = GRIM_TOLERANCE_MULTIPLIER / (10 ** decimal_places)
+    half_unit = GRIM_TOLERANCE_MULTIPLIER / (10 ** decimal_places)
+    lower_sum = (mean - half_unit) * n
+    upper_sum = (mean + half_unit) * n
+    epsilon = 1e-12
+    min_possible_sum = math.ceil(lower_sum - epsilon)
+    max_possible_sum = math.floor(upper_sum + epsilon)
+    possible = min_possible_sum <= max_possible_sum
+    tolerance = half_unit * n
     deviation = abs(expected_sum - nearest_int)
 
-    verdict = "PASS" if deviation <= tolerance else "FAIL"
+    verdict = "PASS" if possible else "FAIL"
     return {
         "verdict": verdict,
         "expected_sum": round(expected_sum, 6),
         "nearest_integer": nearest_int,
         "deviation": round(deviation, 6),
         "tolerance": round(tolerance, 6),
+        "possible_sum_range": [min_possible_sum, max_possible_sum],
+        "rounded_sum_interval": [round(lower_sum, 6), round(upper_sum, 6)],
     }
 
 
@@ -223,9 +229,13 @@ def _run_p_curve(p_values: List[float]) -> Dict[str, Any]:
     Verdict:
       right_skewed + binom p < 0.05  → "evidential"
       insufficient data               → "insufficient_data"
-      flat / left-skewed              → "suspicious" (possible p-hacking)
+      statistically left-skewed        → "suspicious" (possible p-hacking)
+      otherwise                       → "inconclusive"
     """
-    sig_p = [p for p in p_values if 0 < p < 0.05]
+    normalised = [_normalise_p_value(p) for p in p_values]
+    exact_values = [p["value"] for p in normalised if p and p["operator"] == "="]
+    excluded_non_exact = [p for p in normalised if p and p["operator"] != "="]
+    sig_p = [p for p in exact_values if 0 < p < 0.05]
 
     if len(sig_p) < P_CURVE_MIN_VALUES:
         return {
@@ -235,7 +245,8 @@ def _run_p_curve(p_values: List[float]) -> Dict[str, Any]:
             "proportion_right": None,
             "binomial_p": None,
             "verdict": "insufficient_data",
-            "note": f"Need ≥{P_CURVE_MIN_VALUES} significant p-values; found {len(sig_p)}.",
+            "excluded_non_exact_count": len(excluded_non_exact),
+            "note": f"Need ≥{P_CURVE_MIN_VALUES} exact significant p-values; found {len(sig_p)}.",
         }
 
     below_025 = [p for p in sig_p if p < 0.025]
@@ -246,11 +257,15 @@ def _run_p_curve(p_values: List[float]) -> Dict[str, Any]:
     binom_result = scipy_stats.binomtest(
         k=len(below_025), n=len(sig_p), p=0.5, alternative="greater"
     )
+    left_binom_result = scipy_stats.binomtest(
+        k=len(below_025), n=len(sig_p), p=0.5, alternative="less"
+    )
     binom_p = round(binom_result.pvalue, 4)
+    left_binom_p = round(left_binom_result.pvalue, 4)
 
     if proportion_right > 0.5 and binom_p < 0.05:
         verdict = "evidential"
-    elif proportion_right <= 0.5:
+    elif proportion_right < 0.5 and left_binom_p < 0.05:
         verdict = "suspicious"
     else:
         verdict = "inconclusive"
@@ -261,8 +276,27 @@ def _run_p_curve(p_values: List[float]) -> Dict[str, Any]:
         "count_025_to_05": len(above_025),
         "proportion_right": round(proportion_right, 3),
         "binomial_p": binom_p,
+        "left_binomial_p": left_binom_p,
         "verdict": verdict,
+        "excluded_non_exact_count": len(excluded_non_exact),
     }
+
+
+def _normalise_p_value(p_value: Any) -> Optional[Dict[str, Any]]:
+    try:
+        if isinstance(p_value, dict):
+            value = float(p_value.get("value"))
+            operator = str(p_value.get("operator", "="))
+        else:
+            value = float(p_value)
+            operator = "="
+    except (TypeError, ValueError):
+        return None
+
+    operator = {"≤": "<=", "≥": ">="}.get(operator, operator)
+    if not 0 < value <= 1:
+        return None
+    return {"value": value, "operator": operator}
 
 
 # ---------------------------------------------------------------------------

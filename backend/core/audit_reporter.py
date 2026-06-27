@@ -82,9 +82,13 @@ def _executive_summary(
     fraud_results: Optional[Dict],
     claims: List[Dict],
 ) -> str:
-    verdict_emoji = {
-        "LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴", "CRITICAL": "⛔"
+    integrity_emoji = {
+        "HIGH": "🟢", "MEDIUM": "🟡", "LOW": "🔴", "CRITICAL": "⛔"
     }.get(verdict, "⚪")
+    risk_verdict = _risk_verdict_from_integrity(verdict)
+    risk_emoji = {
+        "LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴", "CRITICAL": "⛔"
+    }.get(risk_verdict, "⚪")
 
     # Build a prose summary of the most significant findings
     findings = []
@@ -130,7 +134,8 @@ def _executive_summary(
     return (
         f"## Executive Summary\n\n"
         f"**Integrity Score:** `{score:.4f} / 1.0000`  \n"
-        f"**Risk Verdict:** {verdict_emoji} **{verdict}**\n\n"
+        f"**Integrity Rating:** {integrity_emoji} **{verdict}**  \n"
+        f"**Risk Verdict:** {risk_emoji} **{risk_verdict}**\n\n"
         f"{findings_text}\n\n"
         f"### Score Breakdown\n\n"
         f"| Signal | Deduction |\n"
@@ -146,6 +151,15 @@ def _executive_summary(
     )
 
 
+def _risk_verdict_from_integrity(verdict: str) -> str:
+    return {
+        "HIGH": "LOW",
+        "MEDIUM": "MEDIUM",
+        "LOW": "HIGH",
+        "CRITICAL": "CRITICAL",
+    }.get(verdict, "UNKNOWN")
+
+
 def _citation_integrity(graph_results: Optional[Dict]) -> str:
     if not graph_results:
         return "## Citation Integrity\n\n_No graph data available._"
@@ -155,8 +169,8 @@ def _citation_integrity(graph_results: Optional[Dict]) -> str:
     resolved = graph_results.get("resolved_count", 0)
     failed = graph_results.get("failed_count", 0)
     lines.append(
-        f"\n**Citations resolved:** {resolved}  \n"
-        f"**Citations unresolvable:** {failed}"
+        f"\n**Reference entries resolved:** {resolved}  \n"
+        f"**Reference entries unresolvable:** {failed}"
     )
 
     community = graph_results.get("community_analysis", {})
