@@ -1464,19 +1464,17 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  text-align: center;
-  align-items: center;
 }
 
 .pipeline-header h3 {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
 .pipeline-header p {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
 }
 
@@ -1496,27 +1494,96 @@ main {
 .pipeline-module-card-spacious {
   background: var(--bg-card);
   border: 1px solid rgba(15, 23, 42, 0.05);
-  border-radius: 24px;
-  padding: 1.75rem;
+  border-radius: 28px;
+  padding: 2.25rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.012);
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
+
+.pipeline-module-card-spacious::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pipeline-module-card-spacious:nth-child(1)::after { background: linear-gradient(90deg, var(--accent-violet), transparent); }
+.pipeline-module-card-spacious:nth-child(2)::after { background: linear-gradient(90deg, var(--accent-blue), transparent); }
+.pipeline-module-card-spacious:nth-child(3)::after { background: linear-gradient(90deg, var(--accent-emerald), transparent); }
 
 .pipeline-module-card-spacious:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.025);
-  border-color: rgba(15, 23, 42, 0.09);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
+.pipeline-module-card-spacious:hover::after {
+  opacity: 1;
+}
+
+/* Step Number */
+.pmc-step-number {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  width: fit-content;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+.pmc-step-number.violet { background: rgba(124, 58, 237, 0.08); color: var(--accent-violet); }
+.pmc-step-number.blue   { background: rgba(59, 130, 246, 0.08); color: var(--accent-blue); }
+.pmc-step-number.emerald{ background: rgba(16, 185, 129, 0.08); color: var(--accent-emerald); }
+
+/* Content block */
+.pmc-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  flex: 1;
+}
+
+.pmc-content h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.pmc-content p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+/* Large icon */
+.pmc-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  margin-bottom: 0.25rem;
+}
+.pmc-icon.violet { background: rgba(124, 58, 237, 0.08); color: var(--accent-violet); }
+.pmc-icon.blue   { background: rgba(59, 130, 246, 0.08); color: var(--accent-blue); }
+.pmc-icon.emerald{ background: rgba(16, 185, 129, 0.08); color: var(--accent-emerald); }
 
 .module-card-header {
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
 }
+
 
 .icon-badge {
   display: flex;
@@ -1561,14 +1628,14 @@ main {
   background: #090d16;
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 14px;
-  padding: 0.9rem;
+  padding: 1rem;
   color: #a0aec0;
   font-family: monospace;
   font-size: 0.78rem;
   position: relative;
   overflow: hidden;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
-  height: 130px;
+  height: 170px;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -1785,9 +1852,10 @@ main {
   display: flex;
   justify-content: space-between;
   padding: 0 0.2rem;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: #718096;
   margin-top: 0.25rem;
+  flex-shrink: 0;
 }
 
 .radar-sweep {
