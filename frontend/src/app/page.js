@@ -77,10 +77,15 @@ export default function HomePage() {
       {/* RESTORED NAVIGATION BAR */}
       <Navbar />
 
-      <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+      <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', position: 'relative', overflow: 'hidden' }}>
         
+        {/* Floating background animation bubbles */}
+        <div className="landing-bg-bubble landing-bubble-1" />
+        <div className="landing-bg-bubble landing-bubble-2" />
+        <div className="landing-bg-bubble landing-bubble-3" />
+
         {/* 1. HERO SECTION */}
-        <section className="landing-hero" style={{ textAlign: 'center', position: 'relative', padding: '4rem 0 2rem' }}>
+        <section className="landing-hero" style={{ textAlign: 'center', position: 'relative', padding: '4rem 0 2rem', zIndex: 1 }}>
           <h1 style={{ 
             fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)', 
             fontWeight: 700, 
@@ -505,38 +510,56 @@ export default function HomePage() {
         </section>
 
         {/* 9. FAQ ACCORDION (VERISCHOLAR FAQS) */}
-        <section id="faq" className="landing-section" style={{ padding: '4rem 0 2rem' }}>
-          <div className="landing-section-heading" style={{ margin: '0 auto 2.5rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
-              FAQ: Common Verification Questions
-            </h2>
-            <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: '65ch', margin: '0 auto' }}>
-              Learn more about how VeriScholar analyzes manuscripts, runs graph database queries, and score checks research integrity.
-            </p>
-          </div>
+        <section id="faq" className="landing-section" style={{ padding: '6rem 0 4rem' }}>
+          <div className="faq-split-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '4rem', alignItems: 'start' }}>
+            
+            {/* Left Column: Sticky Header */}
+            <div style={{ position: 'sticky', top: '100px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-teal)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.5rem' }}>
+                Questions & Answers
+              </span>
+              <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.15, marginBottom: '1rem' }}>
+                Frequently Asked Questions
+              </h2>
+              <p style={{ fontSize: '1.02rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+                Learn more about how VeriScholar extracts scientific assertions, resolves citation paths, and checks reported mathematical integrity.
+              </p>
+              <div style={{ padding: '1.25rem', borderRadius: '16px', background: 'rgba(13, 148, 136, 0.03)', border: '1px solid rgba(13, 148, 136, 0.1)', display: 'inline-flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Still have questions?</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  Reach out to our core developer team at <a href="mailto:support@verischolar.org" style={{ color: 'var(--accent-teal)', fontWeight: 600, textDecoration: 'none' }}>support@verischolar.org</a>
+                </span>
+              </div>
+            </div>
 
-          <div className="faq-stack">
-            {faqData.map((faq, index) => {
-              const isOpen = expandedFaq === index;
-              return (
-                <div key={index} className="faq-item">
-                  <button 
-                    className="faq-trigger" 
-                    onClick={() => setExpandedFaq(isOpen ? null : index)}
-                  >
-                    <span className="faq-title">{faq.question}</span>
-                    <span className="faq-symbol">
-                      {isOpen ? <Minus size={18} /> : <Plus size={18} />}
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div className="faq-content">
-                      {faq.answer}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {/* Right Column: Accordion List */}
+            <div className="faq-stack" style={{ margin: 0, maxWidth: '100%' }}>
+              {faqData.map((faq, index) => {
+                const isOpen = expandedFaq === index;
+                return (
+                  <div key={index} className="faq-item" style={{ border: 'none', borderBottom: '1px solid rgba(15,23,42,0.06)', borderRadius: 0, overflow: 'visible' }}>
+                    <button 
+                      className="faq-trigger" 
+                      onClick={() => setExpandedFaq(isOpen ? null : index)}
+                      style={{ padding: '1.5rem 0', gap: '1rem' }}
+                    >
+                      <span className="faq-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: isOpen ? 'var(--accent-teal)' : 'var(--text-primary)', transition: 'color 0.2s' }}>
+                        {faq.question}
+                      </span>
+                      <span className="faq-symbol" style={{ color: isOpen ? 'var(--accent-teal)' : 'var(--text-secondary)' }}>
+                        {isOpen ? <Minus size={18} /> : <Plus size={18} />}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="faq-content" style={{ padding: '0 0 1.5rem 0', fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        {faq.answer}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
         </section>
 

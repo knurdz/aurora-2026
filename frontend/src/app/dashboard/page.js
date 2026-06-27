@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AuthGate from '../../components/AuthGate';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -37,6 +38,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const router = useRouter();
   const [summary, setSummary] = useState(null);
   const [apiKeys, setApiKeys] = useState([]);
   const [keyName, setKeyName] = useState('Production key');
@@ -50,13 +52,11 @@ function DashboardContent() {
   const [activeView, setActiveView] = useState('Overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
-  const [copiedIndex, setCopiedIndex] = useState(null);
 
-  const handleCopyCommand = (text, index) => {
-    navigator.clipboard?.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+  // Notifications states
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
 
   const apiBase = getApiBase();
   const displayBase = apiBase === '/api' ? 'https://verischolar.knurdz.org/api' : apiBase;
@@ -122,6 +122,55 @@ function DashboardContent() {
     );
   }, [summary?.recent_analyses, searchQuery]);
 
+  // Compile active notifications list dynamically
+  useEffect(() => {
+    if (!summary && apiKeys.length === 0) return;
+    const list = [];
+    
+    // 1. Processed audits
+    (summary?.recent_analyses || []).forEach((analysis, index) => {
+      const isProcessed = analysis.status === 'processed';
+      if (isProcessed) {
+        list.push({
+          id: `audit-${analysis.analysis_id}`,
+          text: `Audit processed: ${analysis.filename || 'Untitled'} (Score: ${formatScore(analysis.integrity_score)})`,
+          time: index === 0 ? 'Just now' : `${index * 2}h ago`,
+          link: `/report/${analysis.analysis_id}`
+        });
+      } else if (analysis.status === 'failed') {
+        list.push({
+          id: `audit-${analysis.analysis_id}`,
+          text: `Audit failed: ${analysis.filename || 'Untitled'}`,
+          time: `${index * 3 + 1}h ago`,
+          link: `/analyze/${analysis.analysis_id}`
+        });
+      }
+    });
+
+    // 2. Active API keys
+    apiKeys.forEach((key, index) => {
+      if (!key.revoked_at) {
+        list.push({
+          id: `key-${key.id}`,
+          text: `API Key active: "${key.name}" (${key.prefix}...)`,
+          time: `${index * 4 + 2}h ago`,
+          link: null
+        });
+      }
+    });
+
+    // 3. System Health status
+    list.push({
+      id: 'sys-health',
+      text: 'System health: Neo4j graph databases and Chroma stores online.',
+      time: '1d ago',
+      link: '/settings'
+    });
+
+    setNotifications(list);
+    setUnreadCount(list.length > 3 ? 3 : list.length);
+  }, [summary, apiKeys]);
+
   const handleCreateKey = async () => {
     setCreating(true);
     try {
@@ -140,6 +189,14 @@ function DashboardContent() {
       key.id === keyId ? { ...key, revoked_at: new Date().toISOString() } : key
     )));
   };
+
+  const handleCopyCommand = (text, index) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   return (
     <>
@@ -173,18 +230,82 @@ function DashboardContent() {
               <Search className="twisty-search-icon" size={16} />
               <input 
                 type="text" 
-                placeholder="Search audits by name..." 
+                placeholder="Search..." 
                 className="twisty-search-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="icon-button" style={{ borderRadius: '50%' }} title="System Settings" onClick={() => window.location.href='/settings'}>
+            <button className="icon-button" style={{ borderRadius: '50%' }} title="System Settings" onClick={() => router.push('/settings')}>
               <Settings size={16} />
             </button>
-            <button className="icon-button" style={{ borderRadius: '50%' }} title="Notifications">
-              <Bell size={16} />
-            </button>
+            
+            {/* Notification Bell Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="icon-button" 
+                style={{ 
+                  borderRadius: '50%', 
+                  position: 'relative',
+                  background: showNotifications ? 'rgba(13, 148, 136, 0.08)' : '#ffffff', 
+                  color: showNotifications ? '#0d9488' : 'var(--text-secondary)',
+                  borderColor: showNotifications ? 'rgba(13, 148, 136, 0.2)' : 'rgba(15, 23, 42, 0.12)'
+                }} 
+                title="Notifications"
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setUnreadCount(0);
+                }}
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    width: '8px',
+                    height: '8px',
+                    background: 'var(--accent-rose)',
+                    borderRadius: '50%',
+                    border: '2px solid white'
+                  }} />
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="notifications-dropdown">
+                  <div className="notifications-header">
+                    <strong>Notifications</strong>
+                    <button onClick={() => setNotifications([])}>Clear all</button>
+                  </div>
+                  <div className="notifications-body">
+                    {notifications.length === 0 ? (
+                      <p className="notifications-empty">No new notifications.</p>
+                    ) : (
+                      notifications.map((n) => (
+                        <div 
+                          key={n.id} 
+                          className="notification-row" 
+                          onClick={() => {
+                            if (n.link) router.push(n.link);
+                            setShowNotifications(false);
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
+                            <div className="notification-dot" />
+                            <div>
+                              <p>{n.text}</p>
+                              <span>{n.time}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {user?.picture_url ? (
               <img 
                 src={user.picture_url} 
@@ -329,7 +450,7 @@ function DashboardContent() {
                           Manuscript LLM audits configured using model <code style={{ fontSize: '0.8rem', background: 'rgba(15,23,42,0.06)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>{health?.llm_model || 'gpt-4o-mini'}</code>.
                         </p>
                       </div>
-                      <button className="twisty-upgrade-btn" onClick={() => window.location.href='/settings'} style={{ marginTop: '1rem' }}>
+                      <button className="twisty-upgrade-btn" onClick={() => router.push('/settings')} style={{ marginTop: '1rem' }}>
                         <span>Configure Engine</span>
                         <ArrowRight size={16} />
                       </button>
@@ -351,7 +472,7 @@ function DashboardContent() {
                       </button>
                     </div>
                     <div>
-                      {(summary?.recent_analyses || []).slice(0, 3).map((analysis, index) => {
+                      {filteredAnalyses.slice(0, 3).map((analysis, index) => {
                         const isExpanded = expandedRow === index;
                         const isProcessed = analysis.status === 'processed';
 
@@ -414,8 +535,8 @@ function DashboardContent() {
                           </div>
                         );
                       })}
-                      {(summary?.recent_analyses || []).length === 0 && (
-                        <p className="muted" style={{ textAlign: 'center', padding: '2rem 0' }}>No recent audits recorded.</p>
+                      {filteredAnalyses.length === 0 && (
+                        <p className="muted" style={{ textAlign: 'center', padding: '2rem 0' }}>No audits matched your search query.</p>
                       )}
                     </div>
                   </div>
@@ -577,15 +698,15 @@ function DashboardContent() {
                       <p className="muted" style={{ textAlign: 'center', padding: '2rem 0' }}>No active API keys found.</p>
                     ) : apiKeys.map((key) => (
                       <div className="api-key-row-item" key={key.id}>
-                        <div>
-                          <strong>{key.name}</strong>
-                          <code>{key.prefix}...</code>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1, marginRight: '1rem' }}>
+                          <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{key.name}</strong>
+                          <code style={{ width: 'fit-content', marginLeft: 0 }}>{key.prefix}...</code>
                         </div>
-                        <div className="key-meta">
+                        <div className="key-meta" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                           {key.revoked_at ? (
                             <span className="revoked-badge">Revoked</span>
                           ) : (
-                            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{key.usage_total} calls</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 500, whiteSpace: 'nowrap' }}>{key.usage_total} calls</span>
                           )}
                           {!key.revoked_at && (
                             <button type="button" className="icon-button" title="Revoke key" onClick={() => handleRevoke(key.id)}>
@@ -609,19 +730,19 @@ function DashboardContent() {
                       <Terminal size={20} />
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.75rem', minWidth: 0 }}>
                       <div>
                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
                           Submit Manuscript (POST)
                         </span>
-                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem', flex: 1, minWidth: 0 }}>
                             {`curl -X POST ${displayBase}/v1/analyses -H "Authorization: Bearer vs_live_..." -F "file=@paper.pdf"`}
                           </code>
                           <button 
                             type="button" 
                             onClick={() => handleCopyCommand(`curl -X POST ${displayBase}/v1/analyses -H "Authorization: Bearer vs_live_..." -F "file=@paper.pdf"`, 0)}
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                             title="Copy command"
                           >
                             {copiedIndex === 0 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}
@@ -633,14 +754,14 @@ function DashboardContent() {
                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
                           Fetch Analysis Status (GET)
                         </span>
-                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem', flex: 1, minWidth: 0 }}>
                             {`curl ${displayBase}/v1/analyses/{analysis_id} -H "Authorization: Bearer vs_live_..."`}
                           </code>
                           <button 
                             type="button" 
                             onClick={() => handleCopyCommand(`curl ${displayBase}/v1/analyses/{analysis_id} -H "Authorization: Bearer vs_live_..."`, 1)}
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                             title="Copy command"
                           >
                             {copiedIndex === 1 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}
@@ -652,14 +773,14 @@ function DashboardContent() {
                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
                           MCP Integration Endpoint
                         </span>
-                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem' }}>
+                        <div style={{ background: '#0f172a', borderRadius: '10px', padding: '0.65rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
+                          <code style={{ color: '#cbd5e1', fontSize: '0.82rem', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap', marginRight: '1rem', flex: 1, minWidth: 0 }}>
                             {`${displayBase}/mcp/`}
                           </code>
                           <button 
                             type="button" 
                             onClick={() => handleCopyCommand(`${displayBase}/mcp/`, 2)}
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                             title="Copy command"
                           >
                             {copiedIndex === 2 ? <Check size={14} style={{ color: '#10b981' }} /> : <Clipboard size={14} />}

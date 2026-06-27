@@ -186,7 +186,7 @@ function SettingsContent() {
               <Search className="twisty-search-icon" size={16} />
               <input 
                 type="text" 
-                placeholder="Search settings..." 
+                placeholder="Search..." 
                 className="twisty-search-input"
                 disabled
               />
