@@ -1,5 +1,6 @@
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +42,7 @@ from core.analysis_service import (
     submission_limit_specs,
 )
 from core.config import settings
+from core.llm_client import llm_config_summary
 from core.mcp_server import mcp_asgi_app, verischolar_mcp
 from core.progress_manager import progress_manager
 from core.storage import SQLiteStore
@@ -105,7 +107,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=split_csv(settings.allowed_cors_origins),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "MCP-Protocol-Version", "Mcp-Session-Id"],
     expose_headers=["Mcp-Session-Id", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
@@ -132,11 +134,107 @@ async def health():
 
 @app.get("/config")
 async def get_config(user: Dict[str, Any] = Depends(require_user)):
+    return llm_config_summary(get_store().get_user_ai_settings(int(user["id"])))
+
+
+def parse_ai_settings_payload(payload: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    endpoint = str(payload.get("endpoint") or "").strip().rstrip("/")
+    model_name = str(payload.get("model_name") or "").strip()
+    api_key_value = payload.get("api_key")
+    api_key = str(api_key_value).strip() if api_key_value is not None else None
+
+    if not endpoint:
+        raise HTTPException(status_code=400, detail="Endpoint is required")
+    if not model_name:
+        raise HTTPException(status_code=400, detail="Model name is required")
+    if len(endpoint) > 2000:
+        raise HTTPException(status_code=400, detail="Endpoint is too long")
+    if len(model_name) > 200:
+        raise HTTPException(status_code=400, detail="Model name is too long")
+    if api_key is not None and len(api_key) > 4000:
+        raise HTTPException(status_code=400, detail="API key is too long")
+
+    parsed = urlparse(endpoint)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Endpoint must be an absolute HTTP(S) URL")
+
     return {
-        "llm_provider": settings.llm_provider,
-        "model_name": settings.openai_model if settings.llm_provider == "openai" else settings.ollama_model,
-        "endpoint": settings.openai_endpoint if settings.llm_provider == "openai" else settings.ollama_host,
+        "endpoint": endpoint,
+        "model_name": model_name,
+        "api_key": api_key or None,
     }
+
+
+@app.get("/settings/ai")
+async def get_ai_settings(user: Dict[str, Any] = Depends(require_user)):
+    custom_settings = get_store().get_user_ai_settings(int(user["id"]))
+    summary = llm_config_summary(custom_settings)
+    summary["system_default"] = llm_config_summary(None)
+    return summary
+
+
+@app.put("/settings/ai")
+async def update_ai_settings(
+    request: Request,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(require_user),
+):
+    assert_safe_origin(request)
+    parsed = parse_ai_settings_payload(payload)
+    saved = get_store().upsert_user_ai_settings(
+        user_id=int(user["id"]),
+        endpoint=str(parsed["endpoint"]),
+        model_name=str(parsed["model_name"]),
+        api_key=parsed["api_key"],
+    )
+    summary = llm_config_summary(saved)
+    summary["system_default"] = llm_config_summary(None)
+    return summary
+
+
+@app.delete("/settings/ai")
+async def clear_ai_settings(
+    request: Request,
+    user: Dict[str, Any] = Depends(require_user),
+):
+    assert_safe_origin(request)
+    get_store().clear_user_ai_settings(int(user["id"]))
+    summary = llm_config_summary(None)
+    summary["system_default"] = llm_config_summary(None)
+    return summary
+
+
+@app.delete("/account")
+async def delete_account(
+    request: Request,
+    response: Response,
+    user: Dict[str, Any] = Depends(require_user),
+):
+    assert_safe_origin(request)
+    user_id = int(user["id"])
+    active_count = get_store().count_active_analyses(user_id)
+    if active_count:
+        raise HTTPException(
+            status_code=409,
+            detail="Wait for active analyses to finish before deleting account data",
+        )
+
+    analysis_ids = get_store().list_analysis_ids_for_user(user_id)
+    try:
+        from ingestion.embeddings import delete_claim_embeddings_for_docs
+
+        vector_documents = delete_claim_embeddings_for_docs(analysis_ids)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not remove vector data. Please try again.",
+        ) from exc
+
+    progress_manager.forget_many(analysis_ids)
+    deleted = get_store().delete_user_account(user_id)
+    deleted["vector_documents"] = vector_documents
+    clear_session_cookie(response)
+    return {"ok": True, "deleted": deleted}
 
 
 @app.get("/auth/google/start")

@@ -61,6 +61,25 @@ export async function getConfig() {
   return request('/config');
 }
 
+export async function getAiSettings() {
+  return request('/settings/ai');
+}
+
+export async function saveAiSettings(settings) {
+  return request('/settings/ai', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+}
+
+export async function resetAiSettings() {
+  return request('/settings/ai', { method: 'DELETE' });
+}
+
+export async function deleteAccount() {
+  return request('/account', { method: 'DELETE' });
+}
+
 export async function getDashboardSummary() {
   return request('/dashboard/summary');
 }

@@ -123,16 +123,19 @@ class MCPAnalysisServiceTests(unittest.TestCase):
                 filename="paper.pdf",
                 content_base64=content_base64,
                 mime_type="application/pdf",
-                schedule_pipeline=lambda analysis_id, filename, body: scheduled.append((analysis_id, filename, body)),
+                schedule_pipeline=lambda analysis_id, filename, body, llm_settings: scheduled.append(
+                    (analysis_id, filename, body, llm_settings)
+                ),
             )
         )
 
         self.assertEqual(payload["status"], "processing")
         self.assertEqual(len(scheduled), 1)
-        analysis_id, scheduled_filename, scheduled_body = scheduled[0]
+        analysis_id, scheduled_filename, scheduled_body, scheduled_llm_settings = scheduled[0]
         self.assertEqual(payload["analysis_id"], analysis_id)
         self.assertEqual(scheduled_filename, "paper.pdf")
         self.assertEqual(scheduled_body, content)
+        self.assertIsNone(scheduled_llm_settings)
 
         record = self.store.get_analysis(analysis_id)
         self.assertEqual(record["source"], "mcp")
@@ -166,6 +169,32 @@ class MCPAnalysisServiceTests(unittest.TestCase):
         with self.assertRaises(Exception) as ctx:
             analysis_service.decode_base64_document("not valid base64")
         self.assertEqual(ctx.exception.status_code, 400)
+
+    def test_submission_schedules_owner_custom_ai_settings(self):
+        self.store.upsert_user_ai_settings(
+            self.user["id"],
+            endpoint="https://models.example.com/v1",
+            model_name="private-reviewer",
+            api_key="private-key",
+        )
+        scheduled = []
+
+        submission = analysis_service.create_analysis_job_from_bytes(
+            filename="private.pdf",
+            content=b"%PDF-1.4\nprivate model route\n",
+            owner_user_id=self.user["id"],
+            api_key_id=self.api_key["id"],
+            source="api",
+            rate_subject=f"api_key:{self.api_key['id']}",
+            schedule_pipeline=lambda analysis_id, filename, body, llm_settings: scheduled.append(llm_settings),
+            mime_type="application/pdf",
+        )
+
+        self.assertEqual(submission.payload["status"], "processing")
+        self.assertEqual(len(scheduled), 1)
+        self.assertEqual(scheduled[0]["endpoint"], "https://models.example.com/v1")
+        self.assertEqual(scheduled[0]["model_name"], "private-reviewer")
+        self.assertEqual(scheduled[0]["api_key"], "private-key")
 
     def test_upload_validation_rejects_bad_extension_empty_and_oversized_files(self):
         with self.assertRaises(Exception) as bad_extension:

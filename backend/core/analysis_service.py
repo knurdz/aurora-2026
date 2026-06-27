@@ -10,11 +10,12 @@ from fastapi import HTTPException, UploadFile
 
 from core.auth import enforce_limits, get_store
 from core.config import settings
+from core.llm_client import get_llm_client
 from core.progress_manager import progress_manager
 from core.storage import decode_result_json, utc_now_iso
 
 
-PipelineScheduler = Callable[[str, str, bytes], None]
+PipelineScheduler = Callable[[str, str, bytes, Optional[Dict[str, Any]]], None]
 
 
 @dataclass(frozen=True)
@@ -71,6 +72,20 @@ def decode_base64_document(content_base64: str) -> bytes:
         raise HTTPException(status_code=400, detail="content_base64 must be valid base64") from exc
 
 
+def analysis_cache_hash(content: bytes, llm_settings: Optional[Dict[str, Any]]) -> str:
+    raw_hash = hashlib.sha256(content).hexdigest()
+    if not llm_settings:
+        return raw_hash
+
+    endpoint = str(llm_settings.get("endpoint") or "").strip()
+    model_name = str(llm_settings.get("model_name") or "").strip()
+    if not endpoint or not model_name:
+        return raw_hash
+
+    cache_fingerprint = f"{raw_hash}:custom:{endpoint}:{model_name}"
+    return hashlib.sha256(cache_fingerprint.encode("utf-8")).hexdigest()
+
+
 def analysis_payload(record: Dict[str, Any]) -> Dict[str, Any]:
     result = decode_result_json(record)
     if result:
@@ -107,7 +122,10 @@ def analysis_summary(record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def emit_progress(analysis_id: str, message: str) -> None:
-    get_store().append_analysis_log(analysis_id, message)
+    try:
+        get_store().append_analysis_log(analysis_id, message)
+    except Exception as exc:
+        print(f"Progress log skipped for {analysis_id}: {exc}")
     progress_manager.emit(analysis_id, message)
 
 
@@ -144,7 +162,12 @@ def build_analysis_result(analysis_id: str, filename: str, result: Dict[str, Any
     }
 
 
-def run_pipeline(analysis_id: str, filename: str, content: bytes) -> None:
+def run_pipeline(
+    analysis_id: str,
+    filename: str,
+    content: bytes,
+    llm_settings: Optional[Dict[str, Any]] = None,
+) -> None:
     from core.langgraph_app import DocumentState, register_progress_callback, unregister_progress_callback, verischolar_graph
 
     register_progress_callback(analysis_id, lambda msg: emit_progress(analysis_id, msg))
@@ -163,6 +186,7 @@ def run_pipeline(analysis_id: str, filename: str, content: bytes) -> None:
             "fraud_results": None,
             "integrity_score": None,
             "audit_report": None,
+            "llm_client": get_llm_client(llm_settings),
         }
         result = verischolar_graph.invoke(initial_state)
         analysis_result = build_analysis_result(analysis_id, filename, result)
@@ -178,14 +202,24 @@ def run_pipeline(analysis_id: str, filename: str, content: bytes) -> None:
         unregister_progress_callback(analysis_id)
 
 
-def schedule_pipeline_in_thread(analysis_id: str, filename: str, content: bytes) -> None:
+def schedule_pipeline_in_thread(
+    analysis_id: str,
+    filename: str,
+    content: bytes,
+    llm_settings: Optional[Dict[str, Any]] = None,
+) -> None:
     loop = asyncio.get_running_loop()
-    loop.run_in_executor(None, run_pipeline, analysis_id, filename, content)
+    loop.run_in_executor(None, run_pipeline, analysis_id, filename, content, llm_settings)
 
 
 def background_task_scheduler(background_tasks: Any) -> PipelineScheduler:
-    def schedule(analysis_id: str, filename: str, content: bytes) -> None:
-        background_tasks.add_task(run_pipeline, analysis_id, filename, content)
+    def schedule(
+        analysis_id: str,
+        filename: str,
+        content: bytes,
+        llm_settings: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        background_tasks.add_task(run_pipeline, analysis_id, filename, content, llm_settings)
 
     return schedule
 
@@ -223,7 +257,8 @@ def create_analysis_job_from_bytes(
     mime_type: Optional[str] = None,
 ) -> AnalysisSubmission:
     validate_upload_bytes(filename, content, mime_type=mime_type)
-    content_hash = hashlib.sha256(content).hexdigest()
+    llm_settings = get_store().get_user_ai_settings(owner_user_id)
+    content_hash = analysis_cache_hash(content, llm_settings)
 
     reusable = get_store().find_reusable_analysis(owner_user_id, content_hash)
     if reusable:
@@ -244,7 +279,7 @@ def create_analysis_job_from_bytes(
         content_hash=content_hash,
     )
     progress_manager.initialize(analysis_id)
-    schedule_pipeline(analysis_id, filename or "document", content)
+    schedule_pipeline(analysis_id, filename or "document", content, llm_settings)
     return AnalysisSubmission(
         payload={"status": "processing", "doc_id": analysis_id, "analysis_id": analysis_id},
         headers=headers,

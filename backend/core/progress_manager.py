@@ -41,4 +41,12 @@ class ProgressManager:
             if q in self.queues[doc_id]:
                 self.queues[doc_id].remove(q)
 
+    def forget(self, doc_id: str):
+        self.logs.pop(doc_id, None)
+        self.queues.pop(doc_id, None)
+
+    def forget_many(self, doc_ids: List[str]):
+        for doc_id in doc_ids:
+            self.forget(doc_id)
+
 progress_manager = ProgressManager()

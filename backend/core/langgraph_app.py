@@ -7,9 +7,7 @@ from ingestion.reference_extractor import extract_reference_entries
 from ingestion.claim_classifier import classify_page_claims, claim_has_nearby_citation
 from ingestion.embeddings import embed_uncited_claims
 from core.config import settings
-from core.llm_client import get_llm_client
-
-_llm = get_llm_client()
+from core.llm_client import LLMClient, get_llm_client
 
 # Progress callbacks: doc_id -> callable(message: str)
 _progress_callbacks: dict[str, Callable] = {}
@@ -39,9 +37,11 @@ class DocumentState(TypedDict):
     fraud_results: Optional[dict]
     integrity_score: Optional[dict]
     audit_report: Optional[str]
+    llm_client: LLMClient
 
 def claim_isolation_agent(state: DocumentState) -> DocumentState:
     doc_id = state["doc_id"]
+    llm_client = state.get("llm_client") or get_llm_client()
     _emit(doc_id, "📄 Parsing document pages...")
     pages = parse_document(state["filename"], state["file_bytes"])
     _emit(doc_id, f"✅ Parsed {len(pages)} pages")
@@ -52,7 +52,7 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
 
     worker_count = min(max(1, settings.claim_page_concurrency), max(1, len(pages)))
     _emit(doc_id, f"🧠 Extracting claims with LLM ({len(pages)} pages, {worker_count} workers)...")
-    page_results = _process_claim_pages(pages, doc_id)
+    page_results = _process_claim_pages(pages, doc_id, llm_client)
 
     for result in page_results:
         all_claims.extend(result["claims"])
@@ -81,7 +81,7 @@ def claim_isolation_agent(state: DocumentState) -> DocumentState:
     return state
 
 
-def _process_claim_pages(pages: List[dict], doc_id: str) -> List[dict]:
+def _process_claim_pages(pages: List[dict], doc_id: str, llm_client: LLMClient) -> List[dict]:
     if not pages:
         return []
 
@@ -90,7 +90,7 @@ def _process_claim_pages(pages: List[dict], doc_id: str) -> List[dict]:
 
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         future_to_page = {
-            executor.submit(_process_claim_page, page): page
+            executor.submit(_process_claim_page, page, llm_client): page
             for page in pages
         }
 
@@ -107,7 +107,7 @@ def _process_claim_pages(pages: List[dict], doc_id: str) -> List[dict]:
     return sorted(results, key=lambda r: r["page_number"])
 
 
-def _process_claim_page(page: dict) -> dict:
+def _process_claim_page(page: dict, llm_client: LLMClient) -> dict:
     page_num = page["page_number"]
     page_text = page["text"]
 
@@ -117,7 +117,7 @@ def _process_claim_page(page: dict) -> dict:
 
     extracted = classify_page_claims(
         page_text,
-        llm_client=_llm,
+        llm_client=llm_client,
         timeout=settings.claim_page_timeout,
     )
 
@@ -195,6 +195,7 @@ def fraud_detection_agent(state: DocumentState) -> DocumentState:
     from core.fraud_detector import run_fraud_detection
 
     doc_id = state["doc_id"]
+    llm_client = state.get("llm_client") or get_llm_client()
     claims = state.get("claims", [])
     document_text = state.get("document_text", "")
     graph_results = state.get("graph_results")
@@ -203,7 +204,7 @@ def fraud_detection_agent(state: DocumentState) -> DocumentState:
     stats = extract_stats_from_claims(
         claims=claims,
         page_text=document_text,
-        llm_client=_llm,
+        llm_client=llm_client,
     )
     _emit(doc_id, f"  → Found {len(stats.get('p_values', []))} p-values, "
                   f"{len(stats.get('sample_sizes', []))} sample sizes, "

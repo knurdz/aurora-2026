@@ -46,3 +46,16 @@ def embed_uncited_claims(doc_id: str, uncited_claims: List[Dict]) -> int:
 
     collection.add(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
     return len(ids)
+
+
+def delete_claim_embeddings_for_docs(doc_ids: List[str]) -> int:
+    """Delete ChromaDB claim vectors for the supplied document ids."""
+    clean_doc_ids = [doc_id for doc_id in doc_ids if doc_id]
+    if not clean_doc_ids:
+        return 0
+
+    client = _get_chroma_client()
+    collection = client.get_or_create_collection(COLLECTION_NAME)
+    for doc_id in clean_doc_ids:
+        collection.delete(where={"doc_id": doc_id})
+    return len(clean_doc_ids)

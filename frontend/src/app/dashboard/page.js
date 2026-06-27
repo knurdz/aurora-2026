@@ -6,7 +6,7 @@ import AuthGate from '../../components/AuthGate';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Logo from '../../components/Logo';
-import { createApiKey, getApiBase, getApiKeys, getDashboardSummary, revokeApiKey } from '../../lib/api';
+import { createApiKey, getApiBase, getApiKeys, getDashboardSummary, revokeApiKey, getCurrentUser, getHealth } from '../../lib/api';
 import {
   Activity,
   Check,
@@ -43,6 +43,8 @@ function DashboardContent() {
   const [newSecret, setNewSecret] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [user, setUser] = useState(null);
+  const [health, setHealth] = useState(null);
 
   // Redesign tab states
   const [activeView, setActiveView] = useState('Overview');
@@ -55,9 +57,18 @@ function DashboardContent() {
   async function loadDashboard() {
     setLoading(true);
     try {
-      const [summaryData, keysData] = await Promise.all([getDashboardSummary(), getApiKeys()]);
+      const [summaryData, keysData, userData, healthData] = await Promise.all([
+        getDashboardSummary(), 
+        getApiKeys(),
+        getCurrentUser(),
+        getHealth()
+      ]);
       setSummary(summaryData);
       setApiKeys(keysData.api_keys || []);
+      if (userData.authenticated) {
+        setUser(userData.user);
+      }
+      setHealth(healthData);
     } finally {
       setLoading(false);
     }
@@ -68,10 +79,19 @@ function DashboardContent() {
 
     async function loadInitialDashboard() {
       try {
-        const [summaryData, keysData] = await Promise.all([getDashboardSummary(), getApiKeys()]);
+        const [summaryData, keysData, userData, healthData] = await Promise.all([
+          getDashboardSummary(), 
+          getApiKeys(),
+          getCurrentUser(),
+          getHealth()
+        ]);
         if (cancelled) return;
         setSummary(summaryData);
         setApiKeys(keysData.api_keys || []);
+        if (userData.authenticated) {
+          setUser(userData.user);
+        }
+        setHealth(healthData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -158,11 +178,17 @@ function DashboardContent() {
             <button className="icon-button" style={{ borderRadius: '50%' }} title="Notifications">
               <Bell size={16} />
             </button>
-            <img 
-              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100" 
-              alt="Profile" 
-              style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-            />
+            {user?.picture_url ? (
+              <img 
+                src={user.picture_url} 
+                alt={user.name || "Profile"} 
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+              />
+            ) : (
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.9rem', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                {user?.name ? user.name[0].toUpperCase() : 'U'}
+              </div>
+            )}
           </div>
         </section>
 
@@ -240,45 +266,64 @@ function DashboardContent() {
 
                   {/* Connect + Upgrade row */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
-                    {/* Let's Connect */}
+                    {/* Database Nodes Health */}
                     <div className="twisty-connect-card">
                       <div className="twisty-connect-header">
-                        <h3>Audit Experts</h3>
-                        <a href="#expert" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0ea5e9', textDecoration: 'none' }}>See all</a>
+                        <h3>Database Nodes</h3>
+                        <div style={{ fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 600 }}>
+                          <div className="status-dot-pulse status-success" style={{ position: 'static' }} /> Online
+                        </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div className="twisty-reviewer-row">
                           <div className="twisty-reviewer-profile">
-                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=80" alt="Dr. Randy Gouse" />
+                            <div className="twisty-project-icon-box" style={{ background: 'rgba(59, 130, 246, 0.08)', color: '#3b82f6' }}>
+                              <Network size={20} />
+                            </div>
                             <div className="twisty-reviewer-info">
-                              <strong>Dr. Randy Gouse <span className="twisty-role-badge role-orange">Senior</span></strong>
-                              <span>Cybersecurity specialist</span>
+                              <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                Neo4j Graph Database 
+                                <span className={`twisty-role-badge ${health?.neo4j === 'connected' ? 'role-blue' : 'role-orange'}`}>
+                                  {health?.neo4j === 'connected' ? 'Connected' : 'Offline'}
+                                </span>
+                              </strong>
+                              <span>Citation cartels graph</span>
                             </div>
                           </div>
-                          <button className="twisty-connect-plus"><Plus size={14} /></button>
                         </div>
 
                         <div className="twisty-reviewer-row">
                           <div className="twisty-reviewer-profile">
-                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=80" alt="Giana Schleifer" />
+                            <div className="twisty-project-icon-box" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981' }}>
+                              <FileScan size={20} />
+                            </div>
                             <div className="twisty-reviewer-info">
-                              <strong>Giana Schleifer <span className="twisty-role-badge role-blue">Middle</span></strong>
-                              <span>Research Integrity Auditor</span>
+                              <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                Chroma Vector DB
+                                <span className={`twisty-role-badge ${health?.chroma === 'connected' ? 'role-blue' : 'role-orange'}`}>
+                                  {health?.chroma === 'connected' ? 'Connected' : 'Offline'}
+                                </span>
+                              </strong>
+                              <span>Claims semantic store</span>
                             </div>
                           </div>
-                          <button className="twisty-connect-plus"><Plus size={14} /></button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Upgrade Card */}
+                    {/* LLM Engine Card */}
                     <div className="twisty-upgrade-card">
                       <div>
-                        <h3>Unlock Premium</h3>
-                        <p>Get access to GPT-4o custom weights, unlimited graph database sync and Louvain cartel mapping.</p>
+                        <h3 style={{ textTransform: 'uppercase', fontSize: '0.8rem', color: '#475569', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Active Engine</h3>
+                        <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'capitalize' }}>
+                          {health?.llm_provider || 'OpenAI'}
+                        </h2>
+                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.85rem', color: '#475569', lineHeight: 1.45 }}>
+                          Manuscript LLM audits configured using model <code style={{ fontSize: '0.8rem', background: 'rgba(15,23,42,0.06)', padding: '0.1rem 0.3rem', borderRadius: '4px' }}>{health?.llm_model || 'gpt-4o-mini'}</code>.
+                        </p>
                       </div>
-                      <button className="twisty-upgrade-btn" onClick={() => window.location.href='/settings'}>
-                        <span>Upgrade now</span>
+                      <button className="twisty-upgrade-btn" onClick={() => window.location.href='/settings'} style={{ marginTop: '1rem' }}>
+                        <span>Configure Engine</span>
                         <ArrowRight size={16} />
                       </button>
                     </div>

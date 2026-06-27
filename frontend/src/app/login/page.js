@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import Logo from '../../components/Logo';
 import { getCurrentUser, getGoogleLoginUrl } from '../../lib/api';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,12 +35,12 @@ export default function LoginPage() {
       <Navbar />
       <main className="login-shell">
         <section className="login-panel">
-          <div className="login-icon" aria-hidden="true">
-            <ShieldCheck size={30} />
+          <div className="login-icon-container">
+            <Logo size={36} />
           </div>
           <h1>Sign in to VeriScholar</h1>
           <p>Use your Google account to manage API keys, monitor usage, and run protected paper audits.</p>
-          <a className="btn-primary login-google-button" href={getGoogleLoginUrl(nextPath)} aria-disabled={checking}>
+          <a className="btn-primary login-google-button" href={getGoogleLoginUrl(nextPath)} aria-disabled={checking} style={{ borderRadius: '999px', padding: '0.75rem 2rem', fontSize: '0.95rem' }}>
             Continue with Google
             <ArrowRight size={17} />
           </a>

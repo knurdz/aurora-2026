@@ -93,6 +93,15 @@ class SQLiteStore:
                     usage_total INTEGER NOT NULL DEFAULT 0
                 );
 
+                CREATE TABLE IF NOT EXISTS user_ai_settings (
+                    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                    endpoint TEXT NOT NULL,
+                    model_name TEXT NOT NULL,
+                    api_key TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS analyses (
                     id TEXT PRIMARY KEY,
                     owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -127,6 +136,7 @@ class SQLiteStore:
                 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
                 CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
                 CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
+                CREATE INDEX IF NOT EXISTS idx_user_ai_settings_user ON user_ai_settings(user_id);
                 CREATE INDEX IF NOT EXISTS idx_analyses_owner ON analyses(owner_user_id, created_at);
                 CREATE INDEX IF NOT EXISTS idx_analyses_content ON analyses(owner_user_id, content_hash, status);
                 CREATE INDEX IF NOT EXISTS idx_analysis_logs_analysis ON analysis_logs(analysis_id, id);
@@ -320,6 +330,52 @@ class SQLiteStore:
             )
             return cur.rowcount > 0
 
+    def get_user_ai_settings(self, user_id: int) -> Optional[Dict[str, Any]]:
+        row = self.conn.execute(
+            """
+            SELECT user_id, endpoint, model_name, api_key, created_at, updated_at
+            FROM user_ai_settings
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def upsert_user_ai_settings(
+        self,
+        user_id: int,
+        endpoint: str,
+        model_name: str,
+        api_key: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        now = utc_now_iso()
+        existing = self.get_user_ai_settings(user_id)
+        stored_api_key = api_key if api_key is not None else (existing or {}).get("api_key")
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT INTO user_ai_settings (
+                    user_id, endpoint, model_name, api_key, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    endpoint = excluded.endpoint,
+                    model_name = excluded.model_name,
+                    api_key = excluded.api_key,
+                    updated_at = excluded.updated_at
+                """,
+                (user_id, endpoint, model_name, stored_api_key, now, now),
+            )
+            return self.get_user_ai_settings(user_id)
+
+    def clear_user_ai_settings(self, user_id: int) -> bool:
+        with self._lock:
+            cur = self.conn.execute(
+                "DELETE FROM user_ai_settings WHERE user_id = ?",
+                (user_id,),
+            )
+            return cur.rowcount > 0
+
     def create_analysis(
         self,
         analysis_id: str,
@@ -379,6 +435,13 @@ class SQLiteStore:
             (user_id, limit),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def list_analysis_ids_for_user(self, user_id: int) -> List[str]:
+        rows = self.conn.execute(
+            "SELECT id FROM analyses WHERE owner_user_id = ? ORDER BY created_at ASC",
+            (user_id,),
+        ).fetchall()
+        return [str(row["id"]) for row in rows]
 
     def count_active_analyses(self, user_id: int) -> int:
         row = self.conn.execute(
@@ -468,6 +531,64 @@ class SQLiteStore:
             "total_analyses": int(total_row["count"]),
             "processed_analyses": int(processed_row["count"]),
         }
+
+    def delete_user_account(self, user_id: int) -> Dict[str, int]:
+        with self._lock:
+            api_key_rows = self.conn.execute(
+                "SELECT id FROM api_keys WHERE user_id = ?",
+                (user_id,),
+            ).fetchall()
+            api_key_ids = [int(row["id"]) for row in api_key_rows]
+            analysis_ids = self.list_analysis_ids_for_user(user_id)
+
+            sessions = self._count_rows("sessions", "user_id = ?", (user_id,))
+            api_keys = len(api_key_ids)
+            analyses = len(analysis_ids)
+            analysis_logs = self._count_analysis_logs(analysis_ids)
+            ai_settings = self._count_rows("user_ai_settings", "user_id = ?", (user_id,))
+
+            subjects = [f"user:{user_id}"]
+            for key_id in api_key_ids:
+                subjects.extend([f"api_key:{key_id}", f"api_key:{key_id}:reads"])
+            rate_limits = self._delete_rate_limit_subjects(subjects)
+
+            cur = self.conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            return {
+                "users": cur.rowcount,
+                "sessions": sessions,
+                "api_keys": api_keys,
+                "analyses": analyses,
+                "analysis_logs": analysis_logs,
+                "ai_settings": ai_settings,
+                "rate_limits": rate_limits,
+            }
+
+    def _count_rows(self, table: str, where_clause: str, params: Tuple[Any, ...]) -> int:
+        row = self.conn.execute(
+            f"SELECT COUNT(*) AS count FROM {table} WHERE {where_clause}",
+            params,
+        ).fetchone()
+        return int(row["count"]) if row else 0
+
+    def _count_analysis_logs(self, analysis_ids: Sequence[str]) -> int:
+        if not analysis_ids:
+            return 0
+        placeholders = ",".join("?" for _ in analysis_ids)
+        row = self.conn.execute(
+            f"SELECT COUNT(*) AS count FROM analysis_logs WHERE analysis_id IN ({placeholders})",
+            tuple(analysis_ids),
+        ).fetchone()
+        return int(row["count"]) if row else 0
+
+    def _delete_rate_limit_subjects(self, subjects: Sequence[str]) -> int:
+        if not subjects:
+            return 0
+        placeholders = ",".join("?" for _ in subjects)
+        cur = self.conn.execute(
+            f"DELETE FROM rate_limits WHERE subject IN ({placeholders})",
+            tuple(subjects),
+        )
+        return cur.rowcount
 
     def check_and_increment_limits(
         self,

@@ -44,7 +44,7 @@ export default function PrivacyPage() {
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li><strong>Manuscript Documents:</strong> Scholarly papers in PDF or DOCX format uploaded for verification checks.</li>
                 <li><strong>Metadata:</strong> Bibliographic metadata such as paper titles, authors, and citation lists extracted during the analysis phases.</li>
-                <li><strong>Configuration Data:</strong> Local LLM endpoints, API tokens, and sync logs configured on your settings page.</li>
+                <li><strong>Configuration Data:</strong> Custom AI model endpoints, model names, and API tokens configured on your settings page.</li>
               </ul>
             </section>
 
@@ -57,6 +57,7 @@ export default function PrivacyPage() {
               </p>
               <ul style={{ paddingLeft: '1.5rem', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <li><strong>Confidential Analysis:</strong> Uploaded manuscripts are processed temporarily for claim isolation and statistical anomaly checks.</li>
+                <li><strong>Custom AI Routing:</strong> If you configure your own AI provider, manuscript text used for LLM claim extraction and statistics extraction is sent to that endpoint instead of the VeriScholar default provider.</li>
                 <li><strong>API Integrations:</strong> Citation cartel resolution is audited against public databases (CrossRef and Semantic Scholar). No manuscript body text is sent to these endpoints.</li>
                 <li><strong>No Commercial Storage:</strong> We do not store, index, sell, or train external machine learning models on your uploaded files.</li>
               </ul>
@@ -73,7 +74,16 @@ export default function PrivacyPage() {
 
             <section>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
-                5. Changes to This Policy
+                5. Your Controls
+              </h2>
+              <p>
+                From Settings, you can switch future analyses to your own OpenAI-compatible AI endpoint and delete your VeriScholar account data. Account deletion removes sessions, API keys, custom AI settings, analysis records, progress logs, and stored claim vectors associated with your analyses.
+              </p>
+            </section>
+
+            <section>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
+                6. Changes to This Policy
               </h2>
               <p>
                 We may update this policy periodically to reflect changes in our verification tools or system architecture. We encourage you to review this page regularly.
@@ -82,7 +92,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
-                6. Contact Information
+                7. Contact Information
               </h2>
               <p>
                 If you have questions about our privacy practices, please contact us at <a href="mailto:privacy@verischolar.org" style={{ color: '#0d9488', textDecoration: 'none', fontWeight: 500 }}>privacy@verischolar.org</a>.

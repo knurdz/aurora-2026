@@ -157,6 +157,71 @@ class AuthStorageTests(unittest.TestCase):
         self.assertIsNotNone(self.store.get_analysis_for_user(owner["id"], "analysis-1"))
         self.assertIsNone(self.store.get_analysis_for_user(other["id"], "analysis-1"))
 
+    def test_user_ai_settings_can_be_saved_updated_and_cleared(self):
+        user = self.create_user()
+
+        saved = self.store.upsert_user_ai_settings(
+            user["id"],
+            endpoint="https://models.example.com/v1",
+            model_name="review-model",
+            api_key="secret-token",
+        )
+        self.assertEqual(saved["endpoint"], "https://models.example.com/v1")
+        self.assertEqual(saved["model_name"], "review-model")
+        self.assertEqual(saved["api_key"], "secret-token")
+
+        updated = self.store.upsert_user_ai_settings(
+            user["id"],
+            endpoint="https://models.example.com/openai",
+            model_name="review-model-v2",
+        )
+        self.assertEqual(updated["endpoint"], "https://models.example.com/openai")
+        self.assertEqual(updated["model_name"], "review-model-v2")
+        self.assertEqual(updated["api_key"], "secret-token")
+
+        self.assertTrue(self.store.clear_user_ai_settings(user["id"]))
+        self.assertIsNone(self.store.get_user_ai_settings(user["id"]))
+
+    def test_delete_user_account_cascades_owned_data(self):
+        user = self.create_user()
+        raw_token = "session-token"
+        token_hash = auth.hash_session_token(raw_token)
+        self.store.create_session(
+            token_hash=token_hash,
+            user_id=user["id"],
+            expires_at=int(time.time()) + 60,
+            user_agent="unit-test",
+            ip_address="127.0.0.1",
+        )
+        raw_key = auth.generate_api_key()
+        api_key = self.store.create_api_key(user["id"], "CI key", raw_key[:18], auth.hash_api_key(raw_key))
+        self.store.upsert_user_ai_settings(
+            user["id"],
+            endpoint="https://models.example.com/v1",
+            model_name="review-model",
+            api_key="secret-token",
+        )
+        self.store.create_analysis("analysis-1", user["id"], api_key["id"], "paper.pdf", "dashboard", "hash")
+        self.store.append_analysis_log("analysis-1", "Started")
+        self.store.check_and_increment_limits(f"user:{user['id']}", [("analysis_per_day", 86400, 5)], now_ts=120)
+        self.store.check_and_increment_limits(f"api_key:{api_key['id']}", [("analysis_per_day", 86400, 5)], now_ts=120)
+        self.store.check_and_increment_limits(f"api_key:{api_key['id']}:reads", [("reads", 60, 5)], now_ts=120)
+
+        deleted = self.store.delete_user_account(user["id"])
+
+        self.assertEqual(deleted["users"], 1)
+        self.assertEqual(deleted["sessions"], 1)
+        self.assertEqual(deleted["api_keys"], 1)
+        self.assertEqual(deleted["analyses"], 1)
+        self.assertEqual(deleted["analysis_logs"], 1)
+        self.assertEqual(deleted["ai_settings"], 1)
+        self.assertEqual(deleted["rate_limits"], 3)
+        self.assertIsNone(self.store.get_user_by_google_sub("google-123"))
+        self.assertIsNone(self.store.get_user_for_session(token_hash))
+        self.assertEqual(self.store.list_api_keys(user["id"]), [])
+        self.assertEqual(self.store.list_analysis_ids_for_user(user["id"]), [])
+        self.assertIsNone(self.store.get_user_ai_settings(user["id"]))
+
     def test_fixed_window_rate_limit_denies_after_limit(self):
         first = self.store.check_and_increment_limits("api_key:1", [("reads", 60, 2)], now_ts=120)
         second = self.store.check_and_increment_limits("api_key:1", [("reads", 60, 2)], now_ts=121)

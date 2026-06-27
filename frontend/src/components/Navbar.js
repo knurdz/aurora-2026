@@ -59,8 +59,8 @@ export default function Navbar() {
         <Link href="/#features" style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
           Features
         </Link>
-        <Link href="/#how-it-works" style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-          How it works
+        <Link href="/docs" style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+          Documentation
         </Link>
         <Link href="/#pricing" style={{ fontSize: '0.92rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
           Pricing

@@ -17,6 +17,7 @@ Verischolar is a research-integrity toolkit that runs a multi-stage pipeline to 
 - Graph building: Resolve citations through CrossRef, enrich via Semantic Scholar, deduplicate repeated citations, and persist Paper/Author/Journal/Funder nodes and CITES edges to Neo4j (`backend/core/graph_builder.py`).
 - Community & fraud analysis: Community detection and four statistical checks (GRIM, p-curve, small-sample, funding conflict) aggregated into `fraud_results` (`backend/core/community_detector.py`, `backend/core/fraud_detector.py`).
 - Scoring & reporting: integrity score computation and Markdown audit report generation (`backend/core/integrity_scorer.py`, `backend/core/audit_reporter.py`).
+- Privacy controls: signed-in users can delete their VeriScholar account data and configure a private OpenAI-compatible AI endpoint for future dashboard, REST, and MCP analyses.
 
 ## Quick Start
 
@@ -69,7 +70,11 @@ https://verischolar.knurdz.org/api/mcp/
 - `GET /dashboard/api-keys`: list dashboard-managed API keys.
 - `POST /dashboard/api-keys`: create an API key. The secret is returned once.
 - `DELETE /dashboard/api-keys/{key_id}`: revoke an API key.
-- `GET /config`: active LLM provider, model, and endpoint summary. Requires login.
+- `GET /config`: effective LLM provider, model, and endpoint summary for the signed-in user. Requires login.
+- `GET /settings/ai`: fetch custom AI settings metadata without returning the stored API key. Requires login.
+- `PUT /settings/ai`: save a custom OpenAI-compatible endpoint, model name, and optional API key. Requires login.
+- `DELETE /settings/ai`: clear custom AI settings and return to the system default provider. Requires login.
+- `DELETE /account`: delete the signed-in user's sessions, API keys, AI settings, analyses, logs, and stored claim vectors. Requires login.
 - `GET /history`: recent user-owned analysis summaries. Requires login.
 - `GET /analysis/{doc_id}`: fetch a user-owned analysis. Requires login.
 - `GET /events/{doc_id}`: Server-Sent Events stream for user-owned progress logs. Requires login.
@@ -86,7 +91,9 @@ All public v1 endpoints require `Authorization: Bearer <api_key>`.
 
 ### MCP API
 
-The MCP server is available at `POST /mcp/` locally and `/api/mcp/` through Nginx. It uses Streamable HTTP and requires `Authorization: Bearer <api_key>` on every request.
+The MCP server is available at `POST /mcp/` locally and `/api/mcp/` through Nginx. Use the trailing slash in client configuration. It uses Streamable HTTP and requires `Authorization: Bearer <api_key>` on every request. Create API keys from the dashboard and store them outside shell history when possible.
+
+MCP submissions run under the API key owner's account settings. If that user has configured a custom AI endpoint in Settings, MCP analysis jobs use that endpoint too.
 
 Available tools:
 
@@ -95,6 +102,42 @@ Available tools:
 - `verischolar_get_analysis`: fetch one analysis by `analysis_id`.
 - `verischolar_get_analysis_events`: fetch stored progress events from a zero-based `after_index`.
 - `verischolar_wait_for_analysis`: wait briefly for new progress events or completion.
+
+MCP smoke test:
+
+```bash
+python3 -m venv /tmp/verischolar-mcp-test
+/tmp/verischolar-mcp-test/bin/pip install "mcp>=1.27,<2" "httpx==0.27.2"
+
+export VERISCHOLAR_MCP_URL="https://verischolar.knurdz.org/api/mcp/"
+export VERISCHOLAR_API_KEY="vs_live_..."
+
+/tmp/verischolar-mcp-test/bin/python - <<'PY'
+import asyncio
+import os
+
+import httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+
+async def main():
+    async with httpx.AsyncClient(
+        headers={"Authorization": f"Bearer {os.environ['VERISCHOLAR_API_KEY']}"},
+        timeout=30.0,
+    ) as http_client:
+        async with streamable_http_client(os.environ["VERISCHOLAR_MCP_URL"], http_client=http_client) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                tools = await session.list_tools()
+                print("\\n".join(sorted(tool.name for tool in tools.tools)))
+
+asyncio.run(main())
+PY
+
+rm -rf /tmp/verischolar-mcp-test
+```
+
+If a key is pasted into logs, chat, or shared terminals, revoke it from the dashboard and create a fresh one.
 
 Rate-limit headers are returned on limited endpoints:
 
@@ -118,6 +161,7 @@ When the frontend is served through Nginx, public API calls are routed through `
 ## Configuration
 
 - Backend values are loaded from `.env` through `backend/core/config.py`.
+- Signed-in users can override the system LLM route for their own future analyses from the Settings page. Custom AI settings are stored in SQLite, scoped to the user, and the API key is never returned by browser endpoints after save.
 - Database and vector store:
   - `NEO4J_URI` (default `bolt://neo4j:7687`)
   - `NEO4J_USER` (default `neo4j`)
@@ -160,6 +204,13 @@ When the frontend is served through Nginx, public API calls are routed through `
   - `RATE_LIMIT_READS_PER_MINUTE`
   - `RATE_LIMIT_ACTIVE_ANALYSES_PER_USER`
   - `MAX_ACTIVE_API_KEYS_PER_USER`
+
+## Privacy and Custom AI
+
+The Settings page includes two privacy-oriented controls:
+
+- Custom AI model: users can provide an OpenAI-compatible endpoint, API key, and model name. New dashboard uploads, REST API submissions, and MCP submissions for that user use the custom model route for LLM extraction steps.
+- Delete account data: users can remove their account sessions, dashboard-created API keys, custom AI settings, analysis rows, progress logs, and ChromaDB claim vectors. Deletion is blocked while an analysis is active so an in-flight job does not continue processing a manuscript after the removal request.
 
 Generate `SESSION_SECRET` and `API_KEY_PEPPER` with:
 
@@ -216,7 +267,9 @@ Important frontend paths:
 - `frontend/src/app/analyze/[id]/page.js`: live Server-Sent Events progress screen.
 - `frontend/src/app/audit/page.js`: protected upload workspace.
 - `frontend/src/app/report/[id]/page.js`: audit report view.
-- `frontend/src/app/settings/page.js`: backend configuration summary.
+- `frontend/src/app/settings/page.js`: backend configuration summary, custom AI model settings, and account-data deletion.
+- `frontend/src/app/docs/page.js`: product and API documentation page.
+- `frontend/src/app/privacy/page.js`: privacy policy and user data controls.
 - `frontend/src/lib/api.js`: API helper functions and `NEXT_PUBLIC_API_URL` handling.
 
 ## Deployment

@@ -37,6 +37,7 @@ export default function Footer() {
           <div className="footer-links">
             <Link href="/audit">Start Audit</Link>
             <Link href="/settings">System Settings</Link>
+            <Link href="/docs">Documentation</Link>
             <Link href="/privacy">Privacy Policy</Link>
             <Link href="/terms">Terms of Service</Link>
           </div>
