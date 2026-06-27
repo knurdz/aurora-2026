@@ -146,18 +146,18 @@ export default function AnalyzePage() {
             gap: 1rem;
             padding: 1rem;
             border-radius: 12px;
-            background: rgba(255,255,255,0.01);
+            background: rgba(15, 23, 42, 0.02);
             border: 1px solid transparent;
             transition: all 0.3s ease;
           }
           .phase-step.active {
-            background: rgba(59, 130, 246, 0.05);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.05);
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.04);
           }
           .phase-step.completed {
-            background: rgba(16, 185, 129, 0.03);
-            border: 1px solid rgba(16, 185, 129, 0.1);
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.15);
           }
           .phase-num {
             width: 32px;
@@ -167,13 +167,13 @@ export default function AnalyzePage() {
             align-items: center;
             justify-content: center;
             font-weight: 700;
-            background: rgba(255,255,255,0.05);
+            background: rgba(15, 23, 42, 0.05);
             color: var(--text-secondary);
           }
           .phase-step.active .phase-num {
             background: var(--accent-blue);
             color: white;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
           }
           .phase-step.completed .phase-num {
             background: var(--accent-emerald);
@@ -219,7 +219,7 @@ export default function AnalyzePage() {
                     {isCompleted ? '✓' : phase.num}
                   </div>
                   <div>
-                    <p style={{ fontWeight: 600, color: isActive ? 'white' : 'var(--text-secondary)' }}>
+                    <p style={{ fontWeight: 600, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                       {phase.label}
                     </p>
                     <p style={{ fontSize: '0.8rem', color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)', opacity: 0.8 }}>

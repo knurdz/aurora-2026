@@ -61,7 +61,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               
-              <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+              <div style={{ marginTop: '2rem', padding: '1rem', background: 'rgba(15, 23, 42, 0.04)', borderRadius: '8px' }}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                   To change the provider, update the <code style={{ color: 'var(--text-primary)' }}>LLM_PROVIDER</code> setting in the backend <code style={{ color: 'var(--text-primary)' }}>.env</code> file.
                 </p>
@@ -89,7 +89,7 @@ export default function SettingsPage() {
 
 function HealthItem({ name, status }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem', borderBottom: '1px solid rgba(15, 23, 42, 0.08)' }}>
       <span style={{ fontWeight: 500 }}>{name}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {status ? (
