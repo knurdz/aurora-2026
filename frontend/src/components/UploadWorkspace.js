@@ -130,14 +130,6 @@ export default function UploadWorkspace() {
     }
   };
 
-  // Helper for integrity score styling
-  const getScoreColorClass = (score) => {
-    if (score === null || score === undefined) return '';
-    if (score >= 80) return 'score-high';
-    if (score >= 50) return 'score-medium';
-    return 'score-low';
-  };
-
   const getStatusBadge = (status, score) => {
     switch (status) {
       case 'processed':
@@ -172,13 +164,13 @@ export default function UploadWorkspace() {
   };
 
   return (
-    <div className="audit-workspace-layout">
+    <div className="audit-workspace-layout-spacious">
       
-      {/* LEFT COLUMN: Upload Dropzone & History */}
-      <div className="audit-workspace-left">
+      {/* TOP SECTION: Title Block, Upload Dropzone, Recent Audits */}
+      <div className="workspace-top-section">
         
         {/* Title Block */}
-        <div className="workspace-hero-block">
+        <div className="workspace-hero-block centered">
           <div className="eyebrow-glow">
             <Sparkles size={14} />
             <span>INTEGRITY VERIFICATION PLATFORM</span>
@@ -191,7 +183,7 @@ export default function UploadWorkspace() {
 
         {/* Upload Box */}
         <div
-          className={`upload-card-wrapper ${isDragging ? 'dragging' : ''}`}
+          className={`upload-card-wrapper spacious ${isDragging ? 'dragging' : ''}`}
           onDragOver={(event) => {
             event.preventDefault();
             setIsDragging(true);
@@ -202,7 +194,7 @@ export default function UploadWorkspace() {
           <div className="card-glass-glow" />
           
           {!file ? (
-            <div className="dropzone-area">
+            <div className="dropzone-area spacious">
               <input
                 type="file"
                 id="file-upload"
@@ -214,8 +206,8 @@ export default function UploadWorkspace() {
                   }
                 }}
               />
-              <div className="upload-circle-glow">
-                <UploadCloud size={32} className="upload-cloud-icon" />
+              <div className="upload-circle-glow spacious">
+                <UploadCloud size={38} className="upload-cloud-icon" />
               </div>
               <h3>Drag & drop manuscript here</h3>
               <p>Supports scientific manuscripts in PDF or DOCX formats</p>
@@ -232,9 +224,9 @@ export default function UploadWorkspace() {
               </div>
             </div>
           ) : (
-            <div className="file-ready-area">
+            <div className="file-ready-area spacious">
               <div className="file-icon-box">
-                <FileText size={36} className="file-icon" />
+                <FileText size={38} className="file-icon" />
               </div>
               <div className="file-details">
                 <h3 className="file-name">{file.name}</h3>
@@ -293,9 +285,9 @@ export default function UploadWorkspace() {
 
           <div className="audits-list-container">
             {loadingHistory ? (
-              // Skeleton Loader
-              <div className="skeleton-list">
-                {[1, 2, 3].map((n) => (
+              // Skeleton Loader (Grid)
+              <div className="skeleton-list-grid">
+                {[1, 2].map((n) => (
                   <div key={n} className="skeleton-item">
                     <div className="skeleton-bar title" />
                     <div className="skeleton-row">
@@ -312,7 +304,7 @@ export default function UploadWorkspace() {
                 <span>Manuscripts you analyze will be logged here for easy access.</span>
               </div>
             ) : (
-              <div className="audits-grid">
+              <div className="audits-grid-spacious">
                 {history.map((item) => {
                   const isProcessed = item.status === 'processed';
                   const targetUrl = isProcessed ? `/report/${item.doc_id}` : `/analyze/${item.doc_id}`;
@@ -343,151 +335,138 @@ export default function UploadWorkspace() {
 
       </div>
 
-      {/* RIGHT COLUMN: Interactive Pipeline Details */}
-      <div className="audit-workspace-right">
-        <div className="pipeline-sticky-box">
-          <div className="pipeline-header">
-            <h3>Active Audit Pipeline Modules</h3>
-            <p>Verification sub-agents execute these checks in parallel</p>
+      {/* BOTTOM SECTION: Interactive Pipeline Details */}
+      <div className="workspace-bottom-section">
+        <div className="pipeline-header centered">
+          <h3>Active Audit Pipeline Modules</h3>
+          <p>Verification sub-agents execute these checks in parallel</p>
+        </div>
+
+        <div className="pipeline-modules-grid">
+          
+          {/* Module 1: Claim Isolation */}
+          <div className="pipeline-module-card-spacious">
+            <div className="module-card-header">
+              <div className="icon-badge violet">
+                <FileScan size={18} />
+              </div>
+              <div>
+                <h4>1. Claim Isolation Engine</h4>
+                <p>LLM Agents parse manuscript structures to isolate core assertions.</p>
+              </div>
+            </div>
+            
+            {/* Interactive Simulation */}
+            <div className="module-simulation-box claims-sim">
+              <div className="sim-title">
+                <span className="sim-indicator blink" />
+                <span>Agent Claims Extractor: Active</span>
+              </div>
+              <div className="claims-text-container">
+                <p className="claim-para-text">
+                  {MOCK_CLAIMS[activeClaimIdx].text}
+                  <span className="isolated-claim-highlight">
+                    {MOCK_CLAIMS[activeClaimIdx].highlight}
+                    <span className="claim-pop-tag">Claim Isolated</span>
+                  </span>
+                  {MOCK_CLAIMS[activeClaimIdx].postText}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="pipeline-modules-stack">
-            
-            {/* Module 1: Claim Isolation */}
-            <div className="pipeline-module-card">
-              <div className="module-card-header">
-                <div className="icon-badge violet">
-                  <FileScan size={18} />
+          {/* Module 2: Citation Graph Network */}
+          <div className="pipeline-module-card-spacious">
+            <div className="module-card-header">
+              <div className="icon-badge blue">
+                <Network size={18} />
+              </div>
+              <div>
+                <h4>2. Citation Graph & Cartel Detector</h4>
+                <p>Resolves citation coordinates and checks for circular network rings.</p>
+              </div>
+            </div>
+
+            {/* Interactive Simulation */}
+            <div className="module-simulation-box citation-sim">
+              <div className="sim-title">
+                <span className="sim-indicator blink" />
+                <span>Louvain Community Detection</span>
+              </div>
+              <div className="network-diagram-container">
+                <svg className="network-svg" viewBox="0 0 200 110">
+                  <path d="M 40,80 Q 100,10 160,80" fill="none" stroke="rgba(59, 130, 246, 0.15)" strokeWidth="1" />
+                  <line x1="40" y1="80" x2="100" y2="40" stroke="rgba(124, 58, 237, 0.4)" strokeWidth="1.5" strokeDasharray="4,4" className="flow-dash-fast" />
+                  <line x1="160" y1="80" x2="100" y2="40" stroke="rgba(124, 58, 237, 0.4)" strokeWidth="1.5" strokeDasharray="4,4" className="flow-dash-fast-reverse" />
+                  <path d="M 100,40 Q 130,60 100,80 Q 70,60 100,40" fill="none" stroke="var(--accent-rose)" strokeWidth="1.5" strokeDasharray="3,3" className="cartel-loop-flow" />
+                </svg>
+
+                <div className="net-node node-a" title="Your Paper">
+                  <span className="node-pulse" />
+                  <span className="node-lbl">Manuscript</span>
                 </div>
-                <div>
-                  <h4>1. Claim Isolation Engine</h4>
-                  <p>LLM Agents parse manuscript structures to isolate core assertions.</p>
+                <div className="net-node node-b" title="Referenced Work A">
+                  <span className="node-lbl">Ref A</span>
                 </div>
+                <div className="net-node node-c" title="Referenced Work B">
+                  <span className="node-lbl">Ref B</span>
+                </div>
+                <div className="net-node node-d suspect-node" title="Citation Ring Flag">
+                  <span className="node-pulse ring-suspect" />
+                  <span className="node-lbl">Cartel Ring</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Module 3: Statistical Fraud */}
+          <div className="pipeline-module-card-spacious">
+            <div className="module-card-header">
+              <div className="icon-badge emerald">
+                <Calculator size={18} />
+              </div>
+              <div>
+                <h4>3. Statistical Fraud Audit</h4>
+                <p>Performs GRIM arithmetic tests and scans p-curve distributions.</p>
+              </div>
+            </div>
+
+            {/* Interactive Simulation */}
+            <div className="module-simulation-box stats-sim">
+              <div className="sim-title">
+                <span className="sim-indicator blink" />
+                <span>p-Curve Analysis (p-hacking Check)</span>
               </div>
               
-              {/* Interactive Simulation */}
-              <div className="module-simulation-box claims-sim">
-                <div className="sim-title">
-                  <span className="sim-indicator blink" />
-                  <span>Agent Claims Extractor: Active</span>
-                </div>
-                <div className="claims-text-container">
-                  <p className="claim-para-text">
-                    {MOCK_CLAIMS[activeClaimIdx].text}
-                    <span className="isolated-claim-highlight">
-                      {MOCK_CLAIMS[activeClaimIdx].highlight}
-                      <span className="claim-pop-tag">Claim Isolated</span>
-                    </span>
-                    {MOCK_CLAIMS[activeClaimIdx].postText}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Module 2: Citation Graph Network */}
-            <div className="pipeline-module-card">
-              <div className="module-card-header">
-                <div className="icon-badge blue">
-                  <Network size={18} />
-                </div>
-                <div>
-                  <h4>2. Citation Graph & Cartel Detector</h4>
-                  <p>Resolves citation coordinates and checks for circular network rings.</p>
-                </div>
-              </div>
-
-              {/* Interactive Simulation */}
-              <div className="module-simulation-box citation-sim">
-                <div className="sim-title">
-                  <span className="sim-indicator blink" />
-                  <span>Louvain Community Detection</span>
-                </div>
-                <div className="network-diagram-container">
-                  {/* SVG background grid and dynamic flow lines */}
-                  <svg className="network-svg" viewBox="0 0 200 110">
-                    {/* Background paths for citation flow */}
-                    <path d="M 40,80 Q 100,10 160,80" fill="none" stroke="rgba(59, 130, 246, 0.15)" strokeWidth="1" />
-                    
-                    {/* Animate flowing dashes representing citation networks */}
-                    <line x1="40" y1="80" x2="100" y2="40" stroke="rgba(124, 58, 237, 0.4)" strokeWidth="1.5" strokeDasharray="4,4" className="flow-dash-fast" />
-                    <line x1="160" y1="80" x2="100" y2="40" stroke="rgba(124, 58, 237, 0.4)" strokeWidth="1.5" strokeDasharray="4,4" className="flow-dash-fast-reverse" />
-                    
-                    {/* Ring cartel suspicion loop (marked in warning amber/rose) */}
-                    <path d="M 100,40 Q 130,60 100,80 Q 70,60 100,40" fill="none" stroke="var(--accent-rose)" strokeWidth="1.5" strokeDasharray="3,3" className="cartel-loop-flow" />
-                  </svg>
-
-                  {/* Absolute positioned nodes */}
-                  <div className="net-node node-a" title="Your Paper">
-                    <span className="node-pulse" />
-                    <span className="node-lbl">Manuscript</span>
-                  </div>
-                  <div className="net-node node-b" title="Referenced Work A">
-                    <span className="node-lbl">Ref A</span>
-                  </div>
-                  <div className="net-node node-c" title="Referenced Work B">
-                    <span className="node-lbl">Ref B</span>
-                  </div>
-                  <div className="net-node node-d suspect-node" title="Citation Ring Flag">
-                    <span className="node-pulse ring-suspect" />
-                    <span className="node-lbl">Cartel Ring</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Module 3: Statistical Fraud */}
-            <div className="pipeline-module-card">
-              <div className="module-card-header">
-                <div className="icon-badge emerald">
-                  <Calculator size={18} />
-                </div>
-                <div>
-                  <h4>3. Statistical Fraud Audit</h4>
-                  <p>Performs GRIM arithmetic tests and scans p-curve distributions.</p>
-                </div>
-              </div>
-
-              {/* Interactive Simulation */}
-              <div className="module-simulation-box stats-sim">
-                <div className="sim-title">
-                  <span className="sim-indicator blink" />
-                  <span>p-Curve Analysis (p-hacking Check)</span>
-                </div>
-                
-                <div className="pcurve-chart-wrapper">
-                  <svg className="pcurve-svg" viewBox="0 0 200 90">
-                    {/* Gridlines */}
-                    <line x1="0" y1="10" x2="200" y2="10" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
-                    <line x1="0" y1="40" x2="200" y2="40" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
-                    <line x1="0" y1="70" x2="200" y2="70" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
-                    <line x1="100" y1="0" x2="100" y2="90" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
-                    
-                    {/* p = 0.05 threshold line */}
-                    <line x1="80" y1="0" x2="80" y2="90" stroke="var(--accent-rose)" strokeWidth="1.2" strokeDasharray="3,3" />
-                    <text x="84" y="15" fill="var(--accent-rose)" fontSize="7" fontWeight="bold">p = 0.05</text>
-                    
-                    {/* The distribution curve (highly skewed at 0.05 threshold) */}
-                    <path 
-                      d="M 10,15 Q 40,20 78,25 L 80,75 Q 120,80 190,82" 
-                      fill="none" 
-                      stroke="var(--accent-emerald)" 
-                      strokeWidth="2.5" 
-                      strokeLinecap="round"
-                    />
-
-                    {/* Scanning radar sweep */}
-                    <line x1="0" y1="0" x2="0" y2="90" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="4" className="radar-sweep" />
-                  </svg>
+              <div className="pcurve-chart-wrapper">
+                <svg className="pcurve-svg" viewBox="0 0 200 90">
+                  <line x1="0" y1="10" x2="200" y2="10" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
+                  <line x1="0" y1="40" x2="200" y2="40" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
+                  <line x1="0" y1="70" x2="200" y2="70" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
+                  <line x1="100" y1="0" x2="100" y2="90" stroke="rgba(15, 23, 42, 0.03)" strokeWidth="1" />
                   
-                  <div className="chart-labels">
-                    <span>High Significance (p &lt; 0.01)</span>
-                    <span>No Significance</span>
-                  </div>
+                  <line x1="80" y1="0" x2="80" y2="90" stroke="var(--accent-rose)" strokeWidth="1.2" strokeDasharray="3,3" />
+                  <text x="84" y="15" fill="var(--accent-rose)" fontSize="7" fontWeight="bold">p = 0.05</text>
+                  
+                  <path 
+                    d="M 10,15 Q 40,20 78,25 L 80,75 Q 120,80 190,82" 
+                    fill="none" 
+                    stroke="var(--accent-emerald)" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round"
+                  />
+
+                  <line x1="0" y1="0" x2="0" y2="90" stroke="rgba(16, 185, 129, 0.3)" strokeWidth="4" className="radar-sweep" />
+                </svg>
+                
+                <div className="chart-labels">
+                  <span>High Significance (p &lt; 0.01)</span>
+                  <span>No Significance</span>
                 </div>
               </div>
             </div>
-
           </div>
+
         </div>
       </div>
 
