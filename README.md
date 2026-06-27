@@ -50,10 +50,10 @@ MCP clients can use the same dashboard-created API keys with the Streamable HTTP
 
 ```bash
 # Local backend endpoint
-http://localhost:8000/mcp
+http://localhost:8000/mcp/
 
 # Production endpoint through Nginx
-https://verischolar.knurdz.org/api/mcp
+https://verischolar.knurdz.org/api/mcp/
 ```
 
 ## API
@@ -86,7 +86,7 @@ All public v1 endpoints require `Authorization: Bearer <api_key>`.
 
 ### MCP API
 
-The MCP server is available at `POST /mcp` locally and `/api/mcp` through Nginx. It uses Streamable HTTP and requires `Authorization: Bearer <api_key>` on every request.
+The MCP server is available at `POST /mcp/` locally and `/api/mcp/` through Nginx. It uses Streamable HTTP and requires `Authorization: Bearer <api_key>` on every request.
 
 Available tools:
 
@@ -144,7 +144,7 @@ When the frontend is served through Nginx, public API calls are routed through `
   - `ALLOWED_CORS_ORIGINS`
   - `ALLOWED_CSRF_ORIGINS`
   - `APP_DB_PATH` (default `/data/verischolar.sqlite3`)
-  - `MCP_SERVER_URL` (default `https://verischolar.knurdz.org/api/mcp`)
+  - `MCP_SERVER_URL` (default `https://verischolar.knurdz.org/api/mcp/`)
   - `MCP_ALLOWED_HOSTS` (default `verischolar.knurdz.org,localhost:8000,127.0.0.1:8000`)
   - `MAX_UPLOAD_BYTES` (default `52428800`)
   - `GOOGLE_OAUTH_CLIENT_ID`

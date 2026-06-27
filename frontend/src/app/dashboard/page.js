@@ -198,7 +198,7 @@ curl -N ${displayBase}/v1/analyses/{analysis_id}/events \\
   -H "Authorization: Bearer vs_live_..."
 
 # MCP Streamable HTTP endpoint
-${displayBase}/mcp
+${displayBase}/mcp/
 Authorization: Bearer vs_live_...`}</pre>
                 <div className="quota-list">
                   {(summary?.usage?.quota_windows || []).map((quota) => (
