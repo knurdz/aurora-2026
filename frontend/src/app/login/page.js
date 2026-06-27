@@ -36,9 +36,9 @@ export default function LoginPage() {
       <main className="login-shell" style={{ position: 'relative', overflow: 'hidden' }}>
         
         {/* Floating background animation bubbles */}
-        <div className="landing-bg-bubble landing-bubble-1" style={{ opacity: 0.7 }} />
-        <div className="landing-bg-bubble landing-bubble-2" style={{ opacity: 0.7 }} />
-        <div className="landing-bg-bubble landing-bubble-3" style={{ opacity: 0.7 }} />
+        <div className="landing-bg-bubble landing-bubble-1" />
+        <div className="landing-bg-bubble landing-bubble-2" />
+        <div className="landing-bg-bubble landing-bubble-3" />
 
         <section className="login-panel" style={{ position: 'relative', zIndex: 1 }}>
           <div className="login-icon-container">

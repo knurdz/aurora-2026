@@ -1,11 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import AuthGate from '../../../components/AuthGate';
 import Navbar from '../../../components/Navbar';
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowUpRight,
   BarChart3,
   BookOpen,
@@ -16,11 +18,12 @@ import {
   FileText,
   ListChecks,
   SearchCheck,
+  Settings,
   ShieldAlert,
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
-import { getAnalysis } from '../../../lib/api';
+import { getAnalysis, getCurrentUser } from '../../../lib/api';
 
 const SCORE_LABELS = {
   retracted_papers: 'Retracted papers cited',
@@ -95,6 +98,7 @@ function ReportContent() {
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -110,7 +114,18 @@ function ReportContent() {
         setLoading(false);
       }
     }
+    async function fetchUser() {
+      try {
+        const userData = await getCurrentUser();
+        if (userData.authenticated) {
+          setUser(userData.user);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
     fetchData();
+    fetchUser();
   }, [id, router]);
 
   if (loading) {
@@ -170,32 +185,60 @@ function ReportContent() {
     );
   }
 
-  const score = typeof data.integrity_score === 'number' ? data.integrity_score : 0;
-  const verdict = (data.integrity_verdict || getVerdictFromScore(score)).toUpperCase();
-  const verdictConfig = VERDICT_CONFIG[verdict] || VERDICT_CONFIG.UNKNOWN;
-  const VerdictIcon = verdictConfig.icon;
-  const scorePercent = Math.round(score * 100);
-  const scoreAngle = Math.max(0, Math.min(score, 1)) * 360;
-  const deductions = getDeductions(data.score_breakdown);
-  const sectionLinks = getSectionLinks(data.audit_report);
-  const retractedCount = Array.isArray(data.retracted_papers) ? data.retracted_papers.length : 0;
-  const suspiciousClusters = Number(data.suspicious_clusters || 0);
-  const grimFailures = Number(data.grim_failures || 0);
-  const fundingConflicts = Number(data.funding_conflicts || 0);
-  const pCurveVerdict = formatValue(data.p_curve_verdict);
-  const cartelRisk = formatValue(data.cartel_risk);
-  const fraudRisk = formatValue(data.fraud_risk);
-  const referenceCount = data.reference_count ?? data.citations_found;
-  const citationMentionCount = data.citation_mentions_found;
-  const citationTone = getPanelTone(data.cartel_risk, retractedCount + suspiciousClusters);
-  const statsTone = getPanelTone(data.fraud_risk || data.p_curve_verdict, grimFailures + fundingConflicts);
-  const claimTone = deductions.some((item) => item.key === 'uncited_claims') ? 'warning' : 'good';
-  const methodologyTone = data.audit_report ? 'good' : 'neutral';
+  const claimsVal = data.claims_found ?? 0;
+  const citationsVal = referenceCount ?? 0;
+  const mentionsVal = typeof citationMentionCount === 'number' ? citationMentionCount : 0;
+  const anomaliesVal = retractedCount + suspiciousClusters + grimFailures;
+  const pagesVal = data.pages_parsed ?? 0;
+
+  const maxVal = Math.max(1, claimsVal, citationsVal, mentionsVal, anomaliesVal, pagesVal);
+
+  let highlightIndex = 0;
+  if (anomaliesVal > 0) {
+    highlightIndex = 3; // index of Anomalies
+  } else {
+    const vals = [claimsVal, citationsVal, mentionsVal, anomaliesVal, pagesVal];
+    const maxIdx = vals.indexOf(maxVal);
+    highlightIndex = maxIdx !== -1 ? maxIdx : 0;
+  }
+
+  const chartColumns = [
+    { key: 'claims', label: 'Claims', value: claimsVal, shortLabel: 'CLM', color: '#3b82f6' },
+    { key: 'citations', label: 'Citations', value: citationsVal, shortLabel: 'CIT', color: '#10b981' },
+    { key: 'mentions', label: 'Mentions', value: mentionsVal, shortLabel: 'MEN', color: '#f59e0b' },
+    { key: 'anomalies', label: 'Anomalies', value: anomaliesVal, shortLabel: 'ANM', color: '#ef4444' },
+    { key: 'pages', label: 'Pages', value: pagesVal, shortLabel: 'PAG', color: '#6366f1' },
+  ];
 
   return (
     <>
       <Navbar />
       <main className="report-shell">
+        {/* Sub-navbar matching the dashboard */}
+        <section className="twisty-subnav" style={{ marginBottom: 0 }}>
+          <div className="twisty-nav-group">
+            <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <ArrowLeft size={16} /> Back to Dashboard
+            </Link>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <button className="icon-button" style={{ borderRadius: '50%' }} title="System Settings" onClick={() => router.push('/settings')}>
+              <Settings size={16} />
+            </button>
+            {user?.picture_url ? (
+              <img 
+                src={user.picture_url} 
+                alt={user.name || "Profile"} 
+                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+              />
+            ) : (
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.9rem', border: '2px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                {user?.name ? user.name[0].toUpperCase() : 'U'}
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className={`report-hero tone-${verdictConfig.tone}`}>
           <div className="report-hero-copy">
             <div className="report-eyebrow">
@@ -306,89 +349,126 @@ function ReportContent() {
           </SignalCard>
         </section>
 
-        {/* Audit Analytics & Metric Distribution Panel */}
-        <section className="dashboard-card-panel" style={{ padding: '2rem', borderRadius: '28px', border: '1px solid rgba(15, 23, 42, 0.06)', background: '#ffffff', marginBottom: '1.75rem', breakInside: 'avoid' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.5rem' }}>
-            <BarChart3 size={20} style={{ color: '#0d9488' }} />
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-              Audit Analytics & Metric Distribution
-            </h2>
+        {/* Audit Analytics & Metric Distribution Cards */}
+        <div className="twisty-layout-grid">
+          {/* Card 1: Score Deductions Analysis */}
+          <div className="twisty-chart-card">
+            <div className="twisty-chart-header" style={{ marginBottom: '1.5rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Score Deductions Analysis
+                </h2>
+                <p className="twisty-chart-subheader" style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>
+                  Analysis of integrity penalties applied to the manuscript score.
+                </p>
+              </div>
+              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}>
+                <span>Penalties</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
+              {deductions.map((item) => {
+                const magnitudePercent = Math.round(item.magnitude * 100);
+                return (
+                  <div key={item.key}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        {item.label}
+                      </span>
+                      <strong style={{ color: 'var(--accent-rose)' }}>
+                        -{magnitudePercent}%
+                      </strong>
+                    </div>
+                    <div style={{ height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${Math.min(100, magnitudePercent)}%`,
+                        height: '100%',
+                        background: 'linear-gradient(90deg, #f97316, var(--accent-rose))',
+                        borderRadius: '4px'
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {deductions.length === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1.5rem', textAlign: 'center', background: 'rgba(16, 185, 129, 0.04)', borderRadius: '18px', border: '1px dashed rgba(16, 185, 129, 0.15)', gap: '0.75rem' }}>
+                  <ShieldCheck size={36} style={{ color: 'var(--accent-emerald)' }} />
+                  <div>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Perfect Integrity Alignment</h3>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.4 }}>
+                      No score deductions were applied. 100% of the integrity score was preserved.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="report-analytics-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '2.5rem' }}>
-            
-            {/* Left Column: Deductions Analysis */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Score Deductions Analysis
-              </span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {deductions.map((item) => {
-                  const magnitudePercent = Math.round(item.magnitude * 100);
+          {/* Card 2: Volume Metrics Distribution */}
+          <div className="twisty-chart-card">
+            <div className="twisty-chart-header" style={{ marginBottom: '1rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                  Volume Metrics Distribution
+                </h2>
+                <p className="twisty-chart-subheader" style={{ fontSize: '0.82rem', marginTop: '0.25rem' }}>
+                  Distribution of isolated claims, resolved citations, mentions, and anomalies.
+                </p>
+              </div>
+              <div className="twisty-select-badge" style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}>
+                <span>Scanned Volume</span>
+              </div>
+            </div>
+
+            <div className="twisty-chart-summary" style={{ marginBottom: '1.5rem' }}>
+              <div className="twisty-percentage-grow" style={{ fontSize: '2rem' }}>
+                {claimsVal + citationsVal + mentionsVal}
+                <span style={{ fontSize: '0.82rem', marginTop: '0.2' }}>Total items isolated and processed in manuscript</span>
+              </div>
+            </div>
+
+            <div className="twisty-bar-chart" style={{ marginTop: '1rem', height: '170px' }}>
+              {chartColumns.map((col, idx) => {
+                const isHighlighted = idx === highlightIndex;
+                const heightPx = Math.max(15, Math.round((col.value / maxVal) * 100));
+
+                if (isHighlighted) {
                   return (
-                    <div key={item.key} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                        <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
-                        <strong style={{ color: 'var(--accent-rose)' }}>-{magnitudePercent}%</strong>
-                      </div>
-                      <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, magnitudePercent)}%`, height: '100%', background: 'var(--accent-rose)', borderRadius: '3px' }} />
+                    <div className="twisty-bar-col" key={col.key}>
+                      <div className="twisty-bar-highlight-pill" style={{ height: '165px' }}>
+                        <span className="twisty-tooltip-val" style={{ background: '#0f172a' }}>
+                          {col.value} {col.label.toLowerCase()}
+                        </span>
+                        <div className="twisty-bar-line" style={{ height: `${heightPx}px`, background: 'rgba(255, 255, 255, 0.25)' }}>
+                          <div className="twisty-bar-dot" style={{ background: '#ffffff' }} />
+                        </div>
+                        <div className="twisty-day-badge" style={{ background: '#ffffff', color: '#0f172a' }}>
+                          {col.shortLabel}
+                        </div>
                       </div>
                     </div>
                   );
-                })}
-                {deductions.length === 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Perfect Integrity Alignment</span>
-                      <strong style={{ color: 'var(--accent-emerald)' }}>100% Score preserved</strong>
+                } else {
+                  return (
+                    <div className="twisty-bar-col" key={col.key}>
+                      <span style={{ position: 'absolute', top: '-1.5rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                        {col.value}
+                      </span>
+                      <div className="twisty-bar-line" style={{ height: `${heightPx}px`, background: 'rgba(15, 23, 42, 0.08)' }}>
+                        <div className="twisty-bar-dot" style={{ background: col.color }} />
+                      </div>
+                      <div className="twisty-day-badge">
+                        {col.shortLabel}
+                      </div>
                     </div>
-                    <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: '100%', height: '100%', background: 'var(--accent-emerald)', borderRadius: '3px' }} />
-                    </div>
-                  </div>
-                )}
-              </div>
+                  );
+                }
+              })}
             </div>
-
-            {/* Right Column: Dynamic Volume Bars */}
-            <div className="report-metric-distribution-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '1px solid rgba(15,23,42,0.05)', paddingLeft: '2.5rem' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Volume Metrics Distribution
-              </span>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '120px', marginTop: '0.5rem', position: 'relative' }}>
-                {/* Claims */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', width: '60px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#3b82f6', marginBottom: '0.5rem' }}>
-                    {data.claims_found ?? 0}
-                  </span>
-                  <div style={{ width: '6px', height: `${Math.min(90, Math.max(10, (data.claims_found ?? 0) * 8))}px`, background: 'linear-gradient(180deg, #3b82f6, #60a5fa)', borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 600 }}>Claims</span>
-                </div>
-
-                {/* Citations */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', width: '60px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#10b981', marginBottom: '0.5rem' }}>
-                    {referenceCount ?? 0}
-                  </span>
-                  <div style={{ width: '6px', height: `${Math.min(90, Math.max(10, (referenceCount ?? 0) * 4))}px`, background: 'linear-gradient(180deg, #10b981, #34d399)', borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 600 }}>Citations</span>
-                </div>
-
-                {/* Anomalies */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', width: '60px' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f43f5e', marginBottom: '0.5rem' }}>
-                    {retractedCount + suspiciousClusters + grimFailures}
-                  </span>
-                  <div style={{ width: '6px', height: `${Math.min(90, Math.max(10, (retractedCount + suspiciousClusters + grimFailures) * 20))}px`, background: 'linear-gradient(180deg, #f43f5e, #fb7185)', borderRadius: '3px 3px 0 0' }} />
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 600 }}>Anomalies</span>
-                </div>
-              </div>
-            </div>
-
           </div>
-        </section>
+        </div>
 
         <section className="report-workspace">
           <aside className="report-aside" aria-label="Report navigation and score details">

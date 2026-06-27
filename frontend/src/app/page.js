@@ -510,11 +510,11 @@ export default function HomePage() {
         </section>
 
         {/* 9. FAQ ACCORDION (VERISCHOLAR FAQS) */}
-        <section id="faq" className="landing-section" style={{ padding: '6rem 0 4rem' }}>
-          <div className="faq-split-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '4rem', alignItems: 'start' }}>
+        <section id="faq" className="landing-section" style={{ padding: '6rem 0 4rem', width: '100%', boxSizing: 'border-box' }}>
+          <div className="faq-split-layout" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.4fr', gap: '2.5rem', alignItems: 'start', width: '100%', boxSizing: 'border-box' }}>
             
             {/* Left Column: Sticky Header */}
-            <div style={{ position: 'sticky', top: '100px' }}>
+            <div style={{ position: 'sticky', top: '100px', width: '100%', boxSizing: 'border-box' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-teal)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.5rem' }}>
                 Questions & Answers
               </span>
