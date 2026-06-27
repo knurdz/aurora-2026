@@ -2085,10 +2085,11 @@ main {
 }
 
 .faq-item {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  border-radius: 16px;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 0;
+  overflow: visible;
   transition: border-color 0.2s;
 }
 
@@ -2103,29 +2104,39 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.75rem;
+  padding: 1.5rem 0;
+  gap: 1rem;
   cursor: pointer;
   text-align: left;
 }
 
 .faq-title {
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-weight: 700;
+  font-size: 1.1rem;
   color: var(--text-primary);
+  transition: color 0.2s;
 }
 
 .faq-symbol {
   font-size: 1.25rem;
   font-weight: 400;
   color: var(--text-secondary);
-  transition: transform 0.2s;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.faq-trigger.active .faq-title {
+  color: var(--accent-teal);
+}
+
+.faq-trigger.active .faq-symbol {
+  color: var(--accent-teal);
 }
 
 .faq-content {
-  padding: 0 1.75rem 1.25rem 1.75rem;
-  font-size: 0.95rem;
+  padding: 0 0 1.5rem 0;
+  font-size: 0.98rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 @media (max-width: 900px) {
@@ -3233,6 +3244,8 @@ main {
   font-size: 0.8rem;
   font-weight: 600;
   border: 1px solid rgba(13, 148, 136, 0.12);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Key creation row */

@@ -77,12 +77,13 @@ export default function HomePage() {
       {/* RESTORED NAVIGATION BAR */}
       <Navbar />
 
-      <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', position: 'relative', overflow: 'hidden' }}>
-        
+      <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
         {/* Floating background animation bubbles */}
         <div className="landing-bg-bubble landing-bubble-1" />
         <div className="landing-bg-bubble landing-bubble-2" />
         <div className="landing-bg-bubble landing-bubble-3" />
+
+        <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', position: 'relative' }}>
 
         {/* 1. HERO SECTION */}
         <section className="landing-hero" style={{ textAlign: 'center', position: 'relative', padding: '4rem 0 2rem', zIndex: 1 }}>
@@ -537,21 +538,20 @@ export default function HomePage() {
               {faqData.map((faq, index) => {
                 const isOpen = expandedFaq === index;
                 return (
-                  <div key={index} className="faq-item" style={{ border: 'none', borderBottom: '1px solid rgba(15,23,42,0.06)', borderRadius: 0, overflow: 'visible' }}>
+                  <div key={index} className="faq-item">
                     <button 
-                      className="faq-trigger" 
+                      className={`faq-trigger ${isOpen ? 'active' : ''}`}
                       onClick={() => setExpandedFaq(isOpen ? null : index)}
-                      style={{ padding: '1.5rem 0', gap: '1rem' }}
                     >
-                      <span className="faq-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: isOpen ? 'var(--accent-teal)' : 'var(--text-primary)', transition: 'color 0.2s' }}>
+                      <span className="faq-title">
                         {faq.question}
                       </span>
-                      <span className="faq-symbol" style={{ color: isOpen ? 'var(--accent-teal)' : 'var(--text-secondary)' }}>
+                      <span className="faq-symbol">
                         {isOpen ? <Minus size={18} /> : <Plus size={18} />}
                       </span>
                     </button>
                     {isOpen && (
-                      <div className="faq-content" style={{ padding: '0 0 1.5rem 0', fontSize: '0.98rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                      <div className="faq-content">
                         {faq.answer}
                       </div>
                     )}
@@ -563,7 +563,8 @@ export default function HomePage() {
           </div>
         </section>
 
-      </main>
+        </main>
+      </div>
 
       {/* 10. FOOTER */}
       <Footer />

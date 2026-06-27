@@ -185,6 +185,28 @@ function ReportContent() {
     );
   }
 
+  const score = typeof data.integrity_score === 'number' ? data.integrity_score : 0;
+  const verdict = (data.integrity_verdict || getVerdictFromScore(score)).toUpperCase();
+  const verdictConfig = VERDICT_CONFIG[verdict] || VERDICT_CONFIG.UNKNOWN;
+  const VerdictIcon = verdictConfig.icon;
+  const scorePercent = Math.round(score * 100);
+  const scoreAngle = Math.max(0, Math.min(score, 1)) * 360;
+  const deductions = getDeductions(data.score_breakdown);
+  const sectionLinks = getSectionLinks(data.audit_report);
+  const retractedCount = Array.isArray(data.retracted_papers) ? data.retracted_papers.length : 0;
+  const suspiciousClusters = Number(data.suspicious_clusters || 0);
+  const grimFailures = Number(data.grim_failures || 0);
+  const fundingConflicts = Number(data.funding_conflicts || 0);
+  const pCurveVerdict = formatValue(data.p_curve_verdict);
+  const cartelRisk = formatValue(data.cartel_risk);
+  const fraudRisk = formatValue(data.fraud_risk);
+  const referenceCount = data.reference_count ?? data.citations_found;
+  const citationMentionCount = data.citation_mentions_found;
+  const citationTone = getPanelTone(data.cartel_risk, retractedCount + suspiciousClusters);
+  const statsTone = getPanelTone(data.fraud_risk || data.p_curve_verdict, grimFailures + fundingConflicts);
+  const claimTone = deductions.some((item) => item.key === 'uncited_claims') ? 'warning' : 'good';
+  const methodologyTone = data.audit_report ? 'good' : 'neutral';
+
   const claimsVal = data.claims_found ?? 0;
   const citationsVal = referenceCount ?? 0;
   const mentionsVal = typeof citationMentionCount === 'number' ? citationMentionCount : 0;

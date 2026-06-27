@@ -315,12 +315,7 @@ function SettingsContent() {
                       />
                     </div>
                   </form>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem', background: 'rgba(15,23,42,0.02)', padding: '1.25rem', borderRadius: '12px', marginTop: '1.5rem' }}>
-                    <FieldLabel label="Active Provider" value={config?.llm_provider || 'Unknown'} transform />
-                    <FieldLabel label="Managed Endpoint" value={config?.endpoint || 'VeriScholar Default'} breakWords />
-                  </div>
-                )}
+                ) : null}
               </div>
 
               {/* Vercel Footer */}

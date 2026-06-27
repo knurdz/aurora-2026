@@ -85,7 +85,7 @@ function DashboardContent() {
   const router = useRouter();
   const [summary, setSummary] = useState(null);
   const [apiKeys, setApiKeys] = useState([]);
-  const [keyName, setKeyName] = useState('Production key');
+  const [keyName, setKeyName] = useState('');
   const [newSecret, setNewSecret] = useState('');
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [copiedPrefixId, setCopiedPrefixId] = useState(null);
@@ -268,7 +268,7 @@ function DashboardContent() {
       const data = await createApiKey(keyName);
       setNewSecret(data.secret);
       setApiKeys((prev) => [data.api_key, ...prev]);
-      setKeyName('Production key');
+      setKeyName('');
     } finally {
       setCreating(false);
     }
