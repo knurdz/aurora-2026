@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 import secrets
 import time
 from typing import Any, Dict, Optional
@@ -12,6 +13,7 @@ from core.config import settings
 from core.storage import SQLiteStore
 
 
+logger = logging.getLogger(__name__)
 _store: Optional[SQLiteStore] = None
 
 
@@ -212,6 +214,18 @@ async def exchange_google_code(code: str) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.post("https://oauth2.googleapis.com/token", data=payload)
     if response.status_code >= 400:
+        try:
+            error_payload = response.json()
+        except ValueError:
+            error_payload = {"error": response.text[:500]}
+        logger.warning(
+            "Google OAuth token exchange failed: status=%s error=%s description=%s redirect_uri=%s client_id_suffix=%s",
+            response.status_code,
+            error_payload.get("error"),
+            error_payload.get("error_description"),
+            settings.google_oauth_redirect_uri,
+            settings.google_oauth_client_id[-12:] if settings.google_oauth_client_id else "",
+        )
         raise HTTPException(status_code=401, detail="Google OAuth token exchange failed")
     return response.json()
 
