@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import AuthGate from '../../components/AuthGate';
 import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { createApiKey, getApiBase, getApiKeys, getDashboardSummary, revokeApiKey } from '../../lib/api';
 import {
   Activity,
@@ -15,6 +16,8 @@ import {
   RefreshCw,
   ShieldCheck,
   Trash2,
+  ArrowRight,
+  Terminal,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -96,50 +99,51 @@ function DashboardContent() {
       <main className="dashboard-shell">
         <section className="dashboard-header">
           <div>
-            <span className="dashboard-eyebrow">Developer console</span>
-            <h1>API access and audit activity</h1>
-            <p>Manage keys for server-to-server REST clients and review your recent VeriScholar analyses.</p>
+            <div className="dashboard-eyebrow-badge">
+              <Terminal size={12} /> Developer Console
+            </div>
+            <h1>API Access & Audits</h1>
+            <p>Manage keys for secure server REST integrations and review your document integrity analyses.</p>
           </div>
-          <button type="button" className="btn-secondary dashboard-refresh" onClick={loadDashboard}>
-            <RefreshCw size={17} />
+          <button type="button" className="btn-secondary dashboard-refresh-btn" onClick={loadDashboard} style={{ borderRadius: '999px' }}>
+            <RefreshCw size={15} />
             Refresh
           </button>
         </section>
 
         {loading ? (
           <div className="glass-panel dashboard-loading">
-            <Loader2 className="spin" size={28} />
-            <p>Loading dashboard...</p>
+            <Loader2 className="spin" size={24} />
+            <p style={{ margin: 0, fontWeight: 500, color: 'var(--text-secondary)' }}>Retrieving dashboard data...</p>
           </div>
         ) : (
           <>
-            <section className="dashboard-metrics">
-              <Metric icon={Activity} label="Analyses" value={summary?.usage?.total_analyses ?? 0} />
-              <Metric icon={ShieldCheck} label="Processed" value={summary?.usage?.processed_analyses ?? 0} />
-              <Metric icon={KeyRound} label="Active keys" value={`${activeKeys.length}/${summary?.usage?.limits?.active_api_keys ?? 5}`} />
-              <Metric icon={Loader2} label="Running" value={`${summary?.usage?.active_analyses ?? 0}/${summary?.usage?.limits?.active_analyses ?? 1}`} />
+            <section className="dashboard-metrics-grid">
+              <Metric icon={Activity} label="Analyses Started" value={summary?.usage?.total_analyses ?? 0} className="metric-tile-blue" />
+              <Metric icon={ShieldCheck} label="Processed Success" value={summary?.usage?.processed_analyses ?? 0} className="metric-tile-green" />
+              <Metric icon={KeyRound} label="Active API Keys" value={`${activeKeys.length}/${summary?.usage?.limits?.active_api_keys ?? 5}`} className="metric-tile-purple" />
+              <Metric icon={Loader2} label="Running Pipelines" value={`${summary?.usage?.active_analyses ?? 0}/${summary?.usage?.limits?.active_analyses ?? 1}`} className="metric-tile-amber" />
             </section>
 
-            <section className="dashboard-grid">
-              <div className="glass-panel api-key-panel">
-                <div className="panel-heading">
+            <section className="dashboard-panels-grid">
+              <div className="dashboard-card-panel">
+                <div className="dashboard-card-header">
                   <div>
-                    <h2>API Keys</h2>
-                    <p>Create a key for each integration and revoke keys you no longer use.</p>
+                    <h2>Authentication Keys</h2>
+                    <p>Integrate VeriScholar with server daemons or automated research integrity pipelines.</p>
                   </div>
-                  <KeyRound size={22} />
+                  <KeyRound size={20} />
                 </div>
 
                 {newSecret && (
                   <div className="secret-reveal">
-                    <div>
-                      <strong>Copy this key now</strong>
-                      <p>It will not be shown again.</p>
+                    <div style={{ marginBottom: '0.25rem' }}>
+                      <strong style={{ color: '#065f46', fontSize: '0.92rem' }}>Copy this key now</strong>
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: '#047857' }}>It will not be displayed again for security purposes.</p>
                     </div>
-                    <code>{newSecret}</code>
-                    <button type="button" className="btn-secondary" onClick={() => navigator.clipboard?.writeText(newSecret)}>
-                      <Clipboard size={16} />
-                      Copy
+                    <code style={{ fontSize: '0.85rem' }}>{newSecret}</code>
+                    <button type="button" className="btn-secondary" onClick={() => navigator.clipboard?.writeText(newSecret)} style={{ borderRadius: '999px', width: 'fit-content', padding: '0.45rem 1.1rem', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                      <Clipboard size={14} /> Copy to Clipboard
                     </button>
                   </div>
                 )}
@@ -149,28 +153,33 @@ function DashboardContent() {
                     value={keyName}
                     onChange={(event) => setKeyName(event.target.value)}
                     maxLength={80}
+                    placeholder="Enter key name (e.g. Production client)"
                     aria-label="API key name"
                   />
-                  <button type="button" className="btn-primary" onClick={handleCreateKey} disabled={creating}>
-                    <Plus size={17} />
-                    {creating ? 'Creating...' : 'Create key'}
+                  <button type="button" className="btn-primary" onClick={handleCreateKey} disabled={creating} style={{ borderRadius: '999px', fontSize: '0.9rem' }}>
+                    <Plus size={16} />
+                    {creating ? 'Creating...' : 'Create Key'}
                   </button>
                 </div>
 
-                <div className="api-key-list">
+                <div className="api-key-list-container">
                   {apiKeys.length === 0 ? (
-                    <p className="muted">No API keys yet.</p>
+                    <p className="muted" style={{ textAlign: 'center', padding: '2rem 0' }}>No active API keys found.</p>
                   ) : apiKeys.map((key) => (
-                    <div className="api-key-row" key={key.id}>
+                    <div className="api-key-row-item" key={key.id}>
                       <div>
                         <strong>{key.name}</strong>
-                        <span>{key.prefix}...</span>
+                        <code>{key.prefix}...</code>
                       </div>
                       <div className="key-meta">
-                        <span>{key.revoked_at ? 'Revoked' : `${key.usage_total} calls`}</span>
+                        {key.revoked_at ? (
+                          <span className="revoked-badge">Revoked</span>
+                        ) : (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{key.usage_total} calls</span>
+                        )}
                         {!key.revoked_at && (
                           <button type="button" className="icon-button" title="Revoke key" onClick={() => handleRevoke(key.id)}>
-                            <Trash2 size={16} />
+                            <Trash2 size={15} />
                           </button>
                         )}
                       </div>
@@ -179,13 +188,13 @@ function DashboardContent() {
                 </div>
               </div>
 
-              <div className="glass-panel quickstart-panel">
-                <div className="panel-heading">
+              <div className="dashboard-card-panel">
+                <div className="dashboard-card-header">
                   <div>
                     <h2>API Quick Start</h2>
-                    <p>Submit analyses over REST or connect MCP clients with the same key.</p>
+                    <p>Submit manuscript files via simple shell commands or REST webhooks.</p>
                   </div>
-                  <Clipboard size={22} />
+                  <Terminal size={20} />
                 </div>
                 <pre>{`curl -X POST ${displayBase}/v1/analyses \\
   -H "Authorization: Bearer vs_live_..." \\
@@ -194,16 +203,12 @@ function DashboardContent() {
 curl ${displayBase}/v1/analyses/{analysis_id} \\
   -H "Authorization: Bearer vs_live_..."
 
-curl -N ${displayBase}/v1/analyses/{analysis_id}/events \\
-  -H "Authorization: Bearer vs_live_..."
-
-# MCP Streamable HTTP endpoint
-${displayBase}/mcp/
-Authorization: Bearer vs_live_...`}</pre>
-                <div className="quota-list">
+# MCP Integration Endpoint
+${displayBase}/mcp/`}</pre>
+                <div className="quota-list" style={{ marginTop: '0.5rem' }}>
                   {(summary?.usage?.quota_windows || []).map((quota) => (
-                    <div key={quota.bucket}>
-                      <Check size={15} />
+                    <div key={quota.bucket} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+                      <Check size={14} style={{ color: '#10b981' }} />
                       <span>{quota.remaining} of {quota.limit} {quota.bucket.replaceAll('_', ' ')} remaining</span>
                     </div>
                   ))}
@@ -211,41 +216,69 @@ Authorization: Bearer vs_live_...`}</pre>
               </div>
             </section>
 
-            <section className="glass-panel recent-panel">
-              <div className="panel-heading">
+            <section className="dashboard-card-panel" style={{ paddingBottom: '1.25rem' }}>
+              <div className="dashboard-card-header">
                 <div>
                   <h2>Recent Analyses</h2>
-                  <p>Dashboard and REST API jobs are scoped to your account.</p>
+                  <p>Track audit jobs launched from your account dashboard or integrations.</p>
                 </div>
-                <Link className="btn-secondary" href="/audit">Run audit</Link>
+                <Link className="btn-secondary" href="/audit" style={{ borderRadius: '999px', fontSize: '0.88rem', padding: '0.55rem 1.15rem' }}>
+                  Run New Audit
+                </Link>
               </div>
-              <div className="analysis-table">
+              <div className="recent-analyses-container">
                 {(summary?.recent_analyses || []).length === 0 ? (
-                  <p className="muted">No analyses yet.</p>
-                ) : summary.recent_analyses.map((analysis) => (
-                  <Link href={analysis.status === 'processed' ? `/report/${analysis.analysis_id}` : `/analyze/${analysis.analysis_id}`} key={analysis.analysis_id} className="analysis-row">
-                    <span>{analysis.filename || 'Untitled document'}</span>
-                    <span>{analysis.source}</span>
-                    <span>{analysis.status}</span>
-                    <span>{formatScore(analysis.integrity_score)}</span>
-                  </Link>
-                ))}
+                  <p className="muted" style={{ textAlign: 'center', padding: '2rem 0' }}>No recent analyses recorded.</p>
+                ) : summary.recent_analyses.map((analysis) => {
+                  const isProcessed = analysis.status === 'processed';
+                  const isRunning = analysis.status === 'running' || analysis.status === 'pending';
+                  
+                  let statusClass = 'status-pending';
+                  if (isProcessed) statusClass = 'status-success';
+                  if (analysis.status === 'failed') statusClass = 'status-failed';
+
+                  return (
+                    <Link 
+                      href={isProcessed ? `/report/${analysis.analysis_id}` : `/analyze/${analysis.analysis_id}`} 
+                      key={analysis.analysis_id} 
+                      className="recent-analysis-row-link"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                        <div className={`status-dot-pulse ${statusClass}`} />
+                        <span className="analysis-filename" title={analysis.filename}>
+                          {analysis.filename || 'Untitled document'}
+                        </span>
+                      </div>
+                      <span className="analysis-source-tag">{analysis.source || 'REST API'}</span>
+                      <span className={`analysis-status-badge ${statusClass}`}>{analysis.status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                          {formatScore(analysis.integrity_score)}
+                        </strong>
+                        <ArrowRight size={15} className="row-arrow" />
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           </>
         )}
       </main>
+      <Footer />
     </>
   );
 }
 
-function Metric({ icon: Icon, label, value }) {
+function Metric({ icon: Icon, label, value, className }) {
   return (
-    <div className="glass-panel metric-tile">
-      <Icon size={21} />
+    <div className={`metric-bento-tile ${className || ''}`}>
+      <div className="metric-icon-container">
+        <Icon size={20} />
+      </div>
       <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
+        <span className="metric-label-text">{label}</span>
+        <strong className="metric-value-text">{value}</strong>
       </div>
     </div>
   );
