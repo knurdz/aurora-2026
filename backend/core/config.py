@@ -28,4 +28,33 @@ class Settings(BaseSettings):
     
     fastapi_env: str = "development"
 
+    # Public app/auth configuration
+    frontend_base_url: str = "https://verischolar.knurdz.org"
+    allowed_cors_origins: str = "https://verischolar.knurdz.org,http://localhost:3000,http://127.0.0.1:3000"
+    allowed_csrf_origins: str = "https://verischolar.knurdz.org,http://localhost:3000,http://127.0.0.1:3000"
+    app_db_path: str = "/data/verischolar.sqlite3"
+
+    # Google OAuth web application credentials
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    google_oauth_redirect_uri: str = "https://verischolar.knurdz.org/api/auth/google/callback"
+
+    # Session/API-key security. Override these in production.
+    session_secret: str = "dev-insecure-session-secret-change-me"
+    session_cookie_name: str = "verischolar_session"
+    session_cookie_secure: bool = False
+    session_ttl_seconds: int = 60 * 60 * 24 * 7
+    oauth_state_ttl_seconds: int = 10 * 60
+    api_key_pepper: str = "dev-insecure-api-key-pepper-change-me"
+
+    # Public beta limits
+    rate_limit_analysis_per_day: int = 5
+    rate_limit_analysis_per_hour: int = 2
+    rate_limit_reads_per_minute: int = 120
+    rate_limit_active_analyses_per_user: int = 1
+    max_active_api_keys_per_user: int = 5
+
+    # FastAPI docs are disabled in production unless explicitly enabled.
+    enable_api_docs: bool = False
+
 settings = Settings()

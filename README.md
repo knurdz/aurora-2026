@@ -26,31 +26,64 @@ Start services (recommended via Docker Compose):
 docker compose up --build
 ```
 
-Upload a file to analyze:
+Open the app at `http://localhost:3000`, sign in with Google, create an API key in the dashboard, then upload from the browser or call the public REST API.
+
+Public REST API example:
 
 ```bash
-curl -F "file=@./paper.pdf" http://localhost:8000/analyze
+curl -X POST http://localhost:8000/v1/analyses \
+  -H "Authorization: Bearer vs_live_..." \
+  -F "file=@./paper.pdf"
 ```
 
-Then stream progress and fetch the result:
+Then stream progress or fetch the result:
 
 ```bash
-curl http://localhost:8000/events/<doc_id>
-curl http://localhost:8000/analysis/<doc_id>
+curl -N http://localhost:8000/v1/analyses/<analysis_id>/events \
+  -H "Authorization: Bearer vs_live_..."
+
+curl http://localhost:8000/v1/analyses/<analysis_id> \
+  -H "Authorization: Bearer vs_live_..."
 ```
 
 ## API
 
-### Endpoints
+### Authenticated Browser Endpoints
 
 - `GET /health`: service health and connectivity summary.
-- `GET /config`: active LLM provider, model, and endpoint summary.
-- `GET /history`: recent in-memory analysis summaries.
-- `GET /analysis/{doc_id}`: fetch a completed analysis.
-- `GET /events/{doc_id}`: Server-Sent Events stream for analysis progress logs.
-- `POST /analyze`: upload a PDF or DOCX file to run the full pipeline; returns a processing status and `doc_id`.
+- `GET /auth/google/start`: starts Google OAuth sign-in.
+- `GET /auth/google/callback`: Google OAuth callback.
+- `GET /auth/me`: current session user.
+- `POST /auth/logout`: revokes the current session.
+- `GET /dashboard/summary`: usage, limits, and recent analyses for the signed-in user.
+- `GET /dashboard/api-keys`: list dashboard-managed API keys.
+- `POST /dashboard/api-keys`: create an API key. The secret is returned once.
+- `DELETE /dashboard/api-keys/{key_id}`: revoke an API key.
+- `GET /config`: active LLM provider, model, and endpoint summary. Requires login.
+- `GET /history`: recent user-owned analysis summaries. Requires login.
+- `GET /analysis/{doc_id}`: fetch a user-owned analysis. Requires login.
+- `GET /events/{doc_id}`: Server-Sent Events stream for user-owned progress logs. Requires login.
+- `POST /analyze`: upload a PDF or DOCX from the dashboard. Requires login.
 
-When the frontend is served through Nginx, public API calls are routed through `/api/*` and proxied to the backend. Direct local backend calls use the backend port directly, such as `http://localhost:8000/analyze`.
+### Public REST API
+
+All public v1 endpoints require `Authorization: Bearer <api_key>`.
+
+- `POST /v1/analyses`: upload a PDF or DOCX; returns `202` with `analysis_id`.
+- `GET /v1/analyses`: list analyses owned by the API key's user.
+- `GET /v1/analyses/{analysis_id}`: fetch status, result, score, and report.
+- `GET /v1/analyses/{analysis_id}/events`: stream analysis progress logs with SSE.
+
+Rate-limit headers are returned on limited endpoints:
+
+- `X-RateLimit-Limit`
+- `X-RateLimit-Remaining`
+- `X-RateLimit-Reset`
+- `Retry-After` on `429`
+
+Default public-beta limits are 5 analysis submissions per day, 2 per hour, 1 active analysis per user, 120 result/status reads per minute, and 5 active API keys per user.
+
+When the frontend is served through Nginx, public API calls are routed through `/api/*` and proxied to the backend. Direct local public REST calls use the backend port directly, such as `http://localhost:8000/v1/analyses`.
 
 ### Typical Response Fields
 
@@ -84,13 +117,56 @@ When the frontend is served through Nginx, public API calls are routed through `
   - `CITATION_REQUEST_TIMEOUT` (default `12`): timeout in seconds for citation metadata requests.
 - Runtime:
   - `FASTAPI_ENV` (default `development`)
+- Public app/auth:
+  - `FRONTEND_BASE_URL` (default `https://verischolar.knurdz.org`)
+  - `ALLOWED_CORS_ORIGINS`
+  - `ALLOWED_CSRF_ORIGINS`
+  - `APP_DB_PATH` (default `/data/verischolar.sqlite3`)
+  - `GOOGLE_OAUTH_CLIENT_ID`
+  - `GOOGLE_OAUTH_CLIENT_SECRET`
+  - `GOOGLE_OAUTH_REDIRECT_URI`
+  - `SESSION_SECRET`
+  - `SESSION_COOKIE_SECURE` (`true` in production)
+  - `API_KEY_PEPPER`
+  - `ENABLE_API_DOCS` (`false` in production by default)
+- Public-beta limits:
+  - `RATE_LIMIT_ANALYSIS_PER_DAY`
+  - `RATE_LIMIT_ANALYSIS_PER_HOUR`
+  - `RATE_LIMIT_READS_PER_MINUTE`
+  - `RATE_LIMIT_ACTIVE_ANALYSES_PER_USER`
+  - `MAX_ACTIVE_API_KEYS_PER_USER`
+
+Generate `SESSION_SECRET` and `API_KEY_PEPPER` with:
+
+```bash
+openssl rand -base64 32
+```
+
+### Google OAuth Setup
+
+Create or select a Google Cloud project, configure the OAuth consent screen, then create an OAuth 2.0 Client ID with application type `Web application`.
+
+Authorized redirect URIs:
+
+- Production: `https://verischolar.knurdz.org/api/auth/google/callback`
+- Local via Next proxy: `http://localhost:3000/api/auth/google/callback`
+
+For local development with the localhost `3000` callback, run the backend on `8000` and set the frontend server env:
+
+```ini
+API_PROXY_TARGET=http://localhost:8000
+NEXT_PUBLIC_API_URL=/api
+```
+
+Copy the generated Google Client ID and Client Secret into `.env` as `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
 
 ## Frontend
 
 Frontend configuration lives in `frontend/.env.local` for local development:
 
 ```ini
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=/api
+API_PROXY_TARGET=http://localhost:8000
 ```
 
 In production, the frontend defaults to relative `/api` routes so Nginx can proxy requests to the backend.
@@ -108,9 +184,12 @@ npm run lint
 
 Important frontend paths:
 
-- `frontend/src/app/page.js`: upload workspace entry screen.
+- `frontend/src/app/page.js`: public landing page.
+- `frontend/src/app/login/page.js`: Google sign-in screen.
+- `frontend/src/app/dashboard/page.js`: API key and usage dashboard.
+- `frontend/src/components/AuthGate.js`: client-side session guard for protected pages.
 - `frontend/src/app/analyze/[id]/page.js`: live Server-Sent Events progress screen.
-- `frontend/src/app/audit/page.js`: recent analysis/history view.
+- `frontend/src/app/audit/page.js`: protected upload workspace.
 - `frontend/src/app/report/[id]/page.js`: audit report view.
 - `frontend/src/app/settings/page.js`: backend configuration summary.
 - `frontend/src/lib/api.js`: API helper functions and `NEXT_PUBLIC_API_URL` handling.

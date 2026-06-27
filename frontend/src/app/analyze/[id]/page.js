@@ -1,16 +1,26 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import AuthGate from '../../../components/AuthGate';
 import Navbar from '../../../components/Navbar';
-import { Loader2, Terminal, CheckCircle2, AlertCircle, Play } from 'lucide-react';
+import { Loader2, Terminal, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getApiBase } from '../../../lib/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE = getApiBase();
 
 export default function AnalyzePage() {
+  return (
+    <AuthGate>
+      <AnalyzeContent />
+    </AuthGate>
+  );
+}
+
+function AnalyzeContent() {
   const { id } = useParams();
   const router = useRouter();
   const [logs, setLogs] = useState([]);
-  const [status, setStatus] = useState('connecting'); // connecting, analyzing, completed, failed
+  const [status, setStatus] = useState('analyzing'); // analyzing, completed, failed
   const [currentPhase, setCurrentPhase] = useState(1); // 1 to 4
   const [errorMsg, setErrorMsg] = useState('');
   const terminalEndRef = useRef(null);
@@ -25,8 +35,7 @@ export default function AnalyzePage() {
   useEffect(() => {
     if (!id) return;
 
-    const eventSource = new EventSource(`${API_BASE}/events/${id}`);
-    setStatus('analyzing');
+    const eventSource = new EventSource(`${API_BASE}/events/${id}`, { withCredentials: true });
 
     eventSource.onmessage = (event) => {
       const message = event.data;

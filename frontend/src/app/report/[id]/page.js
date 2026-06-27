@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
+import AuthGate from '../../../components/AuthGate';
 import Navbar from '../../../components/Navbar';
 import {
   AlertTriangle,
@@ -82,6 +83,14 @@ const markdownComponents = {
 };
 
 export default function ReportPage() {
+  return (
+    <AuthGate>
+      <ReportContent />
+    </AuthGate>
+  );
+}
+
+function ReportContent() {
   const { id } = useParams();
   const router = useRouter();
   const [data, setData] = useState(null);

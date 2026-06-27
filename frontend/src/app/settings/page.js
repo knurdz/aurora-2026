@@ -1,10 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
+import AuthGate from '../../components/AuthGate';
 import Navbar from '../../components/Navbar';
 import { Server, Cpu, CheckCircle, XCircle } from 'lucide-react';
 import { getConfig, getHealth } from '../../lib/api';
 
 export default function SettingsPage() {
+  return (
+    <AuthGate>
+      <SettingsContent />
+    </AuthGate>
+  );
+}
+
+function SettingsContent() {
   const [config, setConfig] = useState(null);
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
