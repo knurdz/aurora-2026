@@ -111,7 +111,7 @@ def _process_claim_page(page: dict) -> dict:
     page_num = page["page_number"]
     page_text = page["text"]
 
-    page_citations = detect_citations(page_text)
+    page_citations = detect_citations(page_text) or []
     for citation in page_citations:
         citation["page_number"] = page_num
 

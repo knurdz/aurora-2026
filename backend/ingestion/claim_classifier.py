@@ -44,8 +44,10 @@ def _normalize_claim(item) -> Dict:
     """Smaller models sometimes ignore the schema and return plain strings
     instead of {"text": ..., "type": ...} objects. Handle both."""
     if isinstance(item, dict):
-        return {"text": str(item.get("text", "")).strip()}
-    return {"text": str(item).strip()}
+        return {"text": str(item.get("text") or "").strip()}
+    if isinstance(item, str):
+        return {"text": item.strip()}
+    return {"text": ""}
 
 
 from core.llm_client import LLMClient
@@ -64,8 +66,15 @@ def classify_page_claims(page_text: str, llm_client: LLMClient, timeout: float =
     )
 
     try:
-        raw_claims = json.loads(raw_output).get("claims", [])
+        payload = json.loads(raw_output)
     except json.JSONDecodeError:
+        return []
+
+    if not isinstance(payload, dict):
+        return []
+
+    raw_claims = payload.get("claims") or []
+    if not isinstance(raw_claims, list):
         return []
 
     return [c for c in (_normalize_claim(item) for item in raw_claims) if c["text"]]

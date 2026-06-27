@@ -125,5 +125,7 @@ def detect_citations(text: str) -> List[Dict]:
     for m in _DOI_RE.finditer(norm):
         _add(m.group(0), "doi", m.group(1), m.start(), m.end())
 
+    return citations
+
 def _normalize_match(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
