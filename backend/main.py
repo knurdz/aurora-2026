@@ -491,7 +491,8 @@ async def v1_get_analysis(
 async def event_generator(analysis_id: str):
     import asyncio
 
-    for log in get_store().list_analysis_logs(analysis_id):
+    logs = get_store().list_analysis_logs(analysis_id)
+    for log in logs:
         yield f"data: {log}\n\n"
 
     record = get_store().get_analysis(analysis_id)
@@ -511,6 +512,7 @@ async def event_generator(analysis_id: str):
             progress_manager.unregister_queue(analysis_id, q)
     elif status_value == "failed":
         error = record.get("error", "Unknown error") if record else "Unknown error"
-        yield f"data: ❌ Error during analysis: {error}\n\n"
-    else:
+        if not any("Error during analysis" in log for log in logs):
+            yield f"data: ❌ Error during analysis: {error}\n\n"
+    elif not any("Complete!" in log for log in logs):
         yield "data: 🏁 Complete!\n\n"
