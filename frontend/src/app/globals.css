@@ -2181,3 +2181,605 @@ main {
     padding: 3rem 1.5rem 2rem 1.5rem;
   }
 }
+
+/* Twisty Dashboard Redesign Mockup Styles */
+
+.twisty-subnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+}
+
+.twisty-nav-group {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.twisty-nav-tab {
+  border: none;
+  background: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.35rem 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.twisty-nav-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: #0f172a;
+}
+
+.twisty-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.twisty-search-input {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 9999px;
+  padding: 0.55rem 1rem 0.55rem 2.5rem;
+  font-size: 0.88rem;
+  width: 200px;
+  transition: all 0.2s ease;
+}
+
+.twisty-search-input:focus {
+  width: 260px;
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.twisty-search-icon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--text-secondary);
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.twisty-layout-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 2rem;
+}
+
+.twisty-column-left,
+.twisty-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Twisty Chart Card */
+.twisty-chart-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 2rem;
+  box-shadow: 0 4px 30px rgba(15, 23, 42, 0.02);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.twisty-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.twisty-chart-header h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.twisty-chart-subheader {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  max-width: 45ch;
+  margin-top: 0.25rem;
+  line-height: 1.5;
+}
+
+.twisty-select-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: #ffffff;
+}
+
+.twisty-chart-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 1rem;
+}
+
+.twisty-percentage-grow {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.twisty-percentage-grow span {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 0.35rem;
+}
+
+/* Styled Bar Chart */
+.twisty-bar-chart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 200px;
+  padding: 0 1rem;
+  margin-top: 2rem;
+  position: relative;
+}
+
+.twisty-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 44px;
+}
+
+.twisty-bar-line {
+  width: 2px;
+  height: 110px;
+  background: rgba(15, 23, 42, 0.08);
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.twisty-bar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.twisty-day-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.twisty-bar-highlight-pill {
+  position: absolute;
+  bottom: 0;
+  width: 44px;
+  height: 185px;
+  background: #0f172a;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 0.5rem;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+  z-index: 10;
+}
+
+.twisty-bar-highlight-pill .twisty-bar-line {
+  background: rgba(255, 255, 255, 0.2);
+  height: 90px;
+  margin-bottom: 0.75rem;
+}
+
+.twisty-bar-highlight-pill .twisty-bar-dot {
+  background: #ffffff;
+}
+
+.twisty-bar-highlight-pill .twisty-day-badge {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.twisty-tooltip-val {
+  position: absolute;
+  top: -2.25rem;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Let's Connect (Reviewers Grid) */
+.twisty-connect-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 1.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4px 30px rgba(15, 23, 42, 0.02);
+}
+
+.twisty-connect-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.twisty-connect-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.twisty-reviewer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.twisty-reviewer-row:first-of-type {
+  border-top: none;
+}
+
+.twisty-reviewer-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.twisty-reviewer-profile img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.twisty-reviewer-info strong {
+  display: flex;
+  align-items: center;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.twisty-reviewer-info span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+}
+
+.twisty-role-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  margin-left: 0.5rem;
+}
+
+.role-orange {
+  background: #ffedd5;
+  color: #f97316;
+}
+
+.role-blue {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.twisty-connect-plus {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.twisty-connect-plus:hover {
+  background: rgba(15, 23, 42, 0.03);
+  transform: scale(1.05);
+}
+
+/* Upgrade Card */
+.twisty-upgrade-card {
+  border-radius: 28px;
+  padding: 2rem;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 230px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+.twisty-upgrade-card::before {
+  content: '';
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
+  top: -20px;
+  right: -20px;
+  pointer-events: none;
+}
+
+.twisty-upgrade-card h3 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.twisty-upgrade-card p {
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.45;
+  margin-top: 0.5rem;
+}
+
+.twisty-upgrade-btn {
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0.75rem 1.25rem;
+  border-radius: 9999px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.06);
+  transition: all 0.2s ease;
+}
+
+.twisty-upgrade-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15,23,42,0.1);
+}
+
+/* Recent Projects Card */
+.twisty-projects-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 2rem;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4px 30px rgba(15, 23, 42, 0.02);
+}
+
+.twisty-projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.twisty-projects-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.twisty-project-row {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+  padding: 1.25rem 0;
+}
+
+.twisty-project-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.twisty-project-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.twisty-project-title-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.twisty-project-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f172a;
+}
+
+.twisty-project-title-group strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.twisty-project-title-group span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.twisty-status-capsule {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.status-capsule-paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-capsule-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.twisty-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.twisty-project-details-expanded {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 14px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.twisty-tag-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.twisty-details-meta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* Proposal Progress Card */
+.twisty-progress-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 2rem;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4px 30px rgba(15, 23, 42, 0.02);
+}
+
+.twisty-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.75rem;
+}
+
+.twisty-progress-header h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.twisty-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  position: relative;
+}
+
+.twisty-progress-col {
+  border-left: 2px solid rgba(15, 23, 42, 0.08);
+  padding-left: 1rem;
+}
+
+.twisty-progress-col:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
+.twisty-progress-col span {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.twisty-progress-col strong {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.twisty-progress-bar-lines {
+  display: flex;
+  gap: 3px;
+  margin-top: 1rem;
+}
+
+.twisty-bar-tick {
+  width: 2px;
+  height: 30px;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.twisty-bar-tick.active-orange { background: #f97316; }
+.twisty-bar-tick.active-blue { background: #3b82f6; }
+.twisty-bar-tick.active-slate { background: #0f172a; }
+
+@media (max-width: 900px) {
+  .twisty-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
