@@ -8,43 +8,36 @@ export default function DocsPage() {
   return (
     <>
       <Navbar />
-      <main className="landing-shell" style={{ minHeight: '80vh', padding: '6rem 2rem 4rem' }}>
+      <main className="docs-shell">
         <div className="docs-layout">
           {/* Left Sticky Sidebar */}
-          <aside style={{
-            position: 'sticky',
-            top: '120px',
-            height: 'fit-content',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem'
-          }}>
-            <h3 style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.05em' }}>
+          <aside className="docs-sidebar">
+            <h3 className="docs-sidebar-title">
               Documentation
             </h3>
             
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.92rem' }}>
-              <a href="#intro" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600 }}>Introduction</a>
+            <nav className="docs-sidebar-nav">
+              <a href="#intro" style={{ fontWeight: 600 }}>Introduction</a>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: '0.5rem' }}>
+              <div className="docs-sidebar-section">
+                <span className="docs-sidebar-section-header">
                   Technical Layers
                 </span>
-                <a href="#claim-isolation" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Claim Isolation</a>
-                <a href="#citation-cartels" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Citation Cartels</a>
-                <a href="#statistical-fraud" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Statistical Fraud</a>
+                <a href="#claim-isolation">Claim Isolation</a>
+                <a href="#citation-cartels">Citation Cartels</a>
+                <a href="#statistical-fraud">Statistical Fraud</a>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginLeft: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: '0.5rem' }}>
+              <div className="docs-sidebar-section">
+                <span className="docs-sidebar-section-header">
                   Features & APIs
                 </span>
-                <a href="#rest-api" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>REST API Reference</a>
-                <a href="#mcp-server" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>MCP Integration</a>
-                <a href="#privacy-controls" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>Privacy Controls</a>
+                <a href="#rest-api">REST API Reference</a>
+                <a href="#mcp-server">MCP Integration</a>
+                <a href="#privacy-controls">Privacy Controls</a>
               </div>
 
-              <a href="#examples" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontWeight: 600, marginTop: '0.5rem' }}>Usage Examples</a>
+              <a href="#examples" style={{ fontWeight: 600 }}>Usage Examples</a>
             </nav>
           </aside>
 

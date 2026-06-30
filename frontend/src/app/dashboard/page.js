@@ -609,7 +609,7 @@ function DashboardContent() {
                                   <span>{analysis.source || 'REST API'}</span>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div className="twisty-project-actions-group">
                                 <span className={`twisty-status-capsule ${statusClass}`}>
                                   {statusLabel}
                                 </span>
