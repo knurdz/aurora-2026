@@ -316,7 +316,7 @@ function DashboardContent() {
               Developer Tools
             </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div className="twisty-subnav-actions">
             <div className="twisty-search-wrapper">
               <Search className="twisty-search-icon" size={16} />
               <input 

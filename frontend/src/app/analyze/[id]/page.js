@@ -88,7 +88,7 @@ function AnalyzeContent() {
   return (
     <>
       <Navbar />
-      <main style={{ maxWidth: '1000px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <main className="analyze-shell">
         <style dangerouslySetInnerHTML={{__html: `
           .terminal-window {
             background: rgba(5, 7, 15, 0.95);
@@ -188,6 +188,16 @@ function AnalyzeContent() {
             background: var(--accent-emerald);
             color: white;
           }
+          @media (max-width: 768px) {
+            .analyze-grid {
+              grid-template-columns: 1fr !important;
+              gap: 1.5rem !important;
+            }
+            .analyze-terminal {
+              grid-column: span 1 !important;
+              height: 350px !important;
+            }
+          }
         `}} />
 
         <div style={{ textAlign: 'center', margin: '2rem 0 1rem 0' }}>
@@ -212,7 +222,7 @@ function AnalyzeContent() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3" style={{ alignItems: 'start' }}>
+        <div className="grid grid-cols-3 analyze-grid" style={{ alignItems: 'start' }}>
           {/* Progress Steps Column */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {phases.map((phase) => {
@@ -241,7 +251,7 @@ function AnalyzeContent() {
           </div>
 
           {/* Terminal Logs Column */}
-          <div className="terminal-window" style={{ gridColumn: 'span 2' }}>
+          <div className="terminal-window analyze-terminal" style={{ gridColumn: 'span 2' }}>
             <div className="terminal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Terminal size={16} color="var(--text-secondary)" />

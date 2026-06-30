@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, LogIn, LogOut, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, LogIn, LogOut, Settings, Menu, X, FileText } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { getCurrentUser, logout } from '../lib/api';
 import Logo from './Logo';
@@ -56,10 +56,22 @@ export default function Navbar() {
         </Link>
       </div>
       
-      {/* Right: Actions (Desktop) */}
       <div className="nav-actions">
         {user ? (
           <>
+            <Link href="/audit" className="btn-secondary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 1.1rem',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: 'none',
+              whiteSpace: 'nowrap'
+            }}>
+              <FileText size={16} />
+              Audit
+            </Link>
             <Link href="/dashboard" className="btn-primary" style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -83,6 +95,19 @@ export default function Navbar() {
           </>
         ) : (
           <>
+            <Link href="/audit" className="btn-secondary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 1.1rem',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: 'none',
+              whiteSpace: 'nowrap'
+            }}>
+              <FileText size={16} />
+              Audit
+            </Link>
             <Link href="/settings" className="nav-action-link" style={{ 
               color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
             }}>
@@ -147,6 +172,27 @@ export default function Navbar() {
           {user ? (
             <>
               <Link 
+                href="/audit" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  padding: '0.65rem 1.1rem',
+                  fontSize: '0.95rem',
+                  boxShadow: 'none',
+                  textDecoration: 'none',
+                  width: '100%',
+                  marginBottom: '0.75rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FileText size={18} />
+                Audit
+              </Link>
+              <Link 
                 href="/dashboard" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="btn-primary"
@@ -192,6 +238,27 @@ export default function Navbar() {
             </>
           ) : (
             <>
+              <Link 
+                href="/audit" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="btn-secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  padding: '0.65rem 1.1rem',
+                  fontSize: '0.95rem',
+                  boxShadow: 'none',
+                  textDecoration: 'none',
+                  width: '100%',
+                  marginBottom: '0.75rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <FileText size={18} />
+                Audit
+              </Link>
               <Link 
                 href="/settings" 
                 onClick={() => setIsMobileMenuOpen(false)}

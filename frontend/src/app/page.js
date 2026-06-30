@@ -83,7 +83,7 @@ export default function HomePage() {
         <div className="landing-bg-bubble landing-bubble-2" />
         <div className="landing-bg-bubble landing-bubble-3" />
 
-        <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem', position: 'relative' }}>
+        <main className="landing-shell" style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
 
         {/* 1. HERO SECTION */}
         <section className="landing-hero" style={{ textAlign: 'center', position: 'relative', padding: '4rem 0 2rem', zIndex: 1 }}>
