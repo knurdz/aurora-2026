@@ -124,7 +124,7 @@ export default function HomePage() {
           <div className="bento-grid">
             
             {/* Card 1: Citation Cartels */}
-            <div className="bento-card card-light-gray" style={{ gridColumn: '1', gridRow: '1' }}>
+            <div className="bento-card card-light-gray bento-card-1">
               <div>
                 <div className="icon-circle-group">
                   <div className="icon-circle" style={{ color: '#2563eb' }}><FileScan size={20} /></div>
@@ -137,7 +137,7 @@ export default function HomePage() {
             </div>
             
             {/* Card 2: Integrity Layers */}
-            <div className="bento-card card-light-gray" style={{ gridColumn: '1', gridRow: '2' }}>
+            <div className="bento-card card-light-gray bento-card-2">
               <div className="bento-big-num">4</div>
               <div>
                 <h3 className="bento-title" style={{ fontSize: '1.1rem' }}>Integrity Layers</h3>
@@ -146,9 +146,7 @@ export default function HomePage() {
             </div>
 
             {/* Card 3: Claim Isolation (Translucent overlay and portrait background) */}
-            <div className="bento-card" style={{ 
-              gridColumn: '2', 
-              gridRow: '1 / 3',
+            <div className="bento-card bento-card-3" style={{ 
               padding: 0, 
               borderRadius: '24px',
               position: 'relative',
@@ -192,7 +190,7 @@ export default function HomePage() {
             </div>
 
             {/* Card 4: Clustering Rate */}
-            <div className="bento-card card-green" style={{ gridColumn: '3', gridRow: '1' }}>
+            <div className="bento-card card-green bento-card-4">
               <div className="bento-big-num" style={{ color: '#065f46', fontSize: '3rem' }}>95%</div>
               <div>
                 <h3 className="bento-title" style={{ color: '#065f46', fontSize: '1.05rem' }}>Clustering Rate</h3>
@@ -201,9 +199,7 @@ export default function HomePage() {
             </div>
             
             {/* Card 5: Reviewer Working Image */}
-            <div className="bento-card" style={{ 
-              gridColumn: '4', 
-              gridRow: '1',
+            <div className="bento-card bento-card-5" style={{ 
               padding: 0,
               borderRadius: '24px',
               backgroundImage: `url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400')`,
@@ -214,7 +210,7 @@ export default function HomePage() {
             </div>
             
             {/* Card 6: Statistical Fraud Checks */}
-            <div className="bento-card card-blue-grad" style={{ gridColumn: '3 / 5', gridRow: '2', justifyContent: 'space-between' }}>
+            <div className="bento-card card-blue-grad bento-card-6" style={{ justifyContent: 'space-between' }}>
               <div>
                 <h3 className="bento-title" style={{ color: '#0369a1', fontSize: '1.35rem' }}>Statistical Fraud Checks</h3>
                 <p className="bento-desc" style={{ color: '#0284c7' }}>Run GRIM tests, p-curve evaluation, and study power heuristics</p>
@@ -375,7 +371,7 @@ export default function HomePage() {
             </span>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem' }}>
+          <div className="home-stats-grid">
             <div className="bento-card card-blue-grad" style={{ padding: '2.5rem', minHeight: '220px' }}>
               <div className="bento-big-num" style={{ fontSize: '4.5rem', color: '#1e3a8a' }}>100M+</div>
               <p style={{ fontSize: '1.15rem', fontWeight: 600, color: '#1e40af' }}>
@@ -394,14 +390,14 @@ export default function HomePage() {
 
         {/* 7. UNLEASH THE POWER */}
         <section className="landing-section" style={{ padding: '3.5rem 0' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '3rem', alignItems: 'center' }}>
+          <div className="home-unleash-grid">
             <div>
               <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.15 }}>
                 Unleash the power of agentic AI to audit scientific paper <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>integrity structures in real-time.</span>
               </h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1.5rem' }}>
+            <div className="home-unleash-stats">
               <div className="bento-card card-purple" style={{ padding: '2rem', minHeight: '180px' }}>
                 <div className="bento-big-num" style={{ fontSize: '3.5rem', color: '#5b21b6' }}>4x</div>
                 <p style={{ fontSize: '0.95rem', fontWeight: 600, color: '#6b21a8' }}>
@@ -430,7 +426,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: '4rem', alignItems: 'center', marginTop: '1.5rem' }}>
+          <div className="home-pipeline-grid">
             <div>
               <h3 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.25 }}>
                 Transitioning your verification workflow to automated multi-agent screening is smooth and reliable.
@@ -512,7 +508,7 @@ export default function HomePage() {
 
         {/* 9. FAQ ACCORDION (VERISCHOLAR FAQS) */}
         <section id="faq" className="landing-section" style={{ padding: '6rem 0 4rem', width: '100%', boxSizing: 'border-box' }}>
-          <div className="faq-split-layout" style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.4fr', gap: '2.5rem', alignItems: 'start', width: '100%', boxSizing: 'border-box' }}>
+          <div className="faq-split-layout" style={{ alignItems: 'start', width: '100%', boxSizing: 'border-box' }}>
             
             {/* Left Column: Sticky Header */}
             <div style={{ position: 'sticky', top: '100px', width: '100%', boxSizing: 'border-box' }}>
@@ -528,7 +524,7 @@ export default function HomePage() {
               <div style={{ padding: '1.25rem', borderRadius: '16px', background: 'rgba(13, 148, 136, 0.03)', border: '1px solid rgba(13, 148, 136, 0.1)', display: 'inline-flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Still have questions?</span>
                 <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  Reach out to our core developer team at <a href="mailto:support@verischolar.org" style={{ color: 'var(--accent-teal)', fontWeight: 600, textDecoration: 'none' }}>support@verischolar.org</a>
+                  Reach out to our core developer team at <a href="mailto:support@knurdz.org" style={{ color: 'var(--accent-teal)', fontWeight: 600, textDecoration: 'none' }}>support@knurdz.org</a>
                 </span>
               </div>
             </div>

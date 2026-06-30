@@ -9,13 +9,7 @@ export default function DocsPage() {
     <>
       <Navbar />
       <main className="landing-shell" style={{ minHeight: '80vh', padding: '6rem 2rem 4rem' }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          gap: '4rem'
-        }}>
+        <div className="docs-layout">
           {/* Left Sticky Sidebar */}
           <aside style={{
             position: 'sticky',

@@ -499,7 +499,7 @@ function DashboardContent() {
                   </div>
 
                   {/* Connect + Upgrade row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '1.5rem' }}>
+                  <div className="dashboard-upgrade-grid">
                     {/* Workspace Quota Limits */}
                     <div className="twisty-connect-card">
                       <div className="twisty-connect-header">
