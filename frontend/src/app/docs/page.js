@@ -42,14 +42,7 @@ export default function DocsPage() {
           </aside>
 
           {/* Right Scrollable Panel */}
-          <article style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '3rem',
-            lineHeight: 1.6,
-            color: 'var(--text-secondary)',
-            fontSize: '0.98rem'
-          }}>
+          <article className="docs-content">
             {/* Intro */}
             <section id="intro">
               <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '1rem' }}>

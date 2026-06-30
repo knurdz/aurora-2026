@@ -4982,26 +4982,42 @@ main {
   margin-top: 0.5rem;
 }
 
+.docs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 @media (max-width: 768px) {
   .docs-shell {
-    padding: 5.5rem 1rem 3rem 1rem !important;
+    padding: 4.5rem 1rem 3rem 1rem !important;
   }
   .docs-layout {
     grid-template-columns: 1fr !important;
     gap: 1.5rem !important;
     width: 100% !important;
   }
+  .docs-content {
+    gap: 2rem !important;
+  }
   .docs-sidebar {
     position: sticky !important;
-    top: 64px !important;
+    top: 60px !important;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
     z-index: 100;
-    padding: 0.75rem 1rem !important;
-    margin: -0.5rem -1rem 1.5rem -1rem !important;
+    padding: 0.75rem 0.25rem !important;
+    margin: 0 0 1.25rem 0 !important;
     border-bottom: 1px solid rgba(15, 23, 42, 0.06);
     border-top: 1px solid rgba(15, 23, 42, 0.04);
-    width: calc(100% + 2rem) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -5120,6 +5136,12 @@ main {
   .dashboard-card-panel {
     padding: 1.25rem !important;
   }
+  .dev-keys-card,
+  .dev-quota-card {
+    padding: 1.25rem !important;
+    border-radius: 20px !important;
+    gap: 1.25rem !important;
+  }
   .settings-panel-footer {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -5171,6 +5193,16 @@ main {
 }
 
 @media (max-width: 640px) {
+  .dev-ide-body {
+    padding: 0.85rem 1rem !important;
+  }
+  .dev-ide-header {
+    padding: 0.6rem 0.85rem !important;
+  }
+  .dev-ide-code {
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+  }
   .twisty-bar-chart {
     padding: 0 0.5rem !important;
   }
