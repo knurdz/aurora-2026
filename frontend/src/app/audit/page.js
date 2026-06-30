@@ -12,9 +12,16 @@ export default function AuditPage() {
     <AuthGate>
       <>
         <Navbar />
-        <main className="audit-shell">
-          <UploadWorkspace />
-        </main>
+        <div style={{ position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {/* Floating background animation bubbles */}
+          <div className="landing-bg-bubble landing-bubble-1" />
+          <div className="landing-bg-bubble landing-bubble-2" />
+          <div className="landing-bg-bubble landing-bubble-3" />
+
+          <main className="audit-shell">
+            <UploadWorkspace />
+          </main>
+        </div>
       </>
     </AuthGate>
   );

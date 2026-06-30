@@ -58,46 +58,51 @@ export default function Navbar() {
       
       {/* Right: Actions (Desktop) */}
       <div className="nav-actions">
-        {user && (
-          <Link href="/dashboard" className="nav-action-link" style={{
-            color: pathname === '/dashboard' ? 'var(--text-primary)' : 'var(--text-secondary)'
-          }}>
-            <LayoutDashboard size={16} />
-            Dashboard
-          </Link>
-        )}
-        <Link href="/settings" className="nav-action-link" style={{ 
-          color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
-        }}>
-          <Settings size={16} />
-          Settings
-        </Link>
         {user ? (
-          <button type="button" className="btn-primary" onClick={handleLogout} style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.55rem 1.1rem',
-            fontSize: '0.9rem',
-            boxShadow: 'none'
-          }}>
-            <LogOut size={16} />
-            Log out
-          </button>
+          <>
+            <Link href="/dashboard" className="btn-primary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.55rem 1.1rem',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              boxShadow: 'none'
+            }}>
+              <LayoutDashboard size={16} />
+              Dashboard
+            </Link>
+            <Link href="/settings" className="nav-icon-btn" title="Settings" aria-label="Settings" style={{ 
+              color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
+            }}>
+              <Settings size={18} />
+            </Link>
+            <button type="button" className="nav-icon-btn" onClick={handleLogout} title="Log out" aria-label="Log out">
+              <LogOut size={18} />
+            </button>
+          </>
         ) : (
-          <Link href="/login" className="btn-primary" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.55rem 1.2rem',
-            fontSize: '0.9rem',
-            textDecoration: 'none',
-            textAlign: 'center',
-            boxShadow: 'none'
-          }}>
-            <LogIn size={16} />
-            Log in
-          </Link>
+          <>
+            <Link href="/settings" className="nav-action-link" style={{ 
+              color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
+            }}>
+              <Settings size={16} />
+              Settings
+            </Link>
+            <Link href="/login" className="btn-primary" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.55rem 1.2rem',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              textAlign: 'center',
+              boxShadow: 'none'
+            }}>
+              <LogIn size={16} />
+              Log in
+            </Link>
+          </>
         )}
       </div>
 
@@ -139,66 +144,84 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="nav-mobile-menu-actions">
-          {user && (
-            <Link 
-              href="/dashboard" 
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="nav-action-link"
-              style={{
-                color: pathname === '/dashboard' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontSize: '1.05rem',
-                fontWeight: 600,
-                marginBottom: '0.75rem'
-              }}
-            >
-              <LayoutDashboard size={18} />
-              Dashboard
-            </Link>
-          )}
-          <Link 
-            href="/settings" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="nav-action-link"
-            style={{ 
-              color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontSize: '1.05rem',
-              fontWeight: 600,
-              marginBottom: '1.25rem'
-            }}
-          >
-            <Settings size={18} />
-            Settings
-          </Link>
           {user ? (
-            <button type="button" className="btn-primary" onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.45rem',
-              padding: '0.65rem 1.1rem',
-              fontSize: '0.95rem',
-              boxShadow: 'none',
-              width: '100%'
-            }}>
-              <LogOut size={18} />
-              Log out
-            </button>
+            <>
+              <Link 
+                href="/dashboard" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  padding: '0.65rem 1.1rem',
+                  fontSize: '0.95rem',
+                  boxShadow: 'none',
+                  textDecoration: 'none',
+                  width: '100%',
+                  marginBottom: '1rem'
+                }}
+              >
+                <LayoutDashboard size={18} />
+                Dashboard
+              </Link>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', padding: '0.5rem 0' }}>
+                <Link 
+                  href="/settings" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="nav-icon-btn"
+                  title="Settings"
+                  aria-label="Settings"
+                  style={{ 
+                    color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)'
+                  }}
+                >
+                  <Settings size={22} />
+                </Link>
+                <button 
+                  type="button" 
+                  className="nav-icon-btn" 
+                  onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
+                  title="Log out"
+                  aria-label="Log out"
+                >
+                  <LogOut size={22} />
+                </button>
+              </div>
+            </>
           ) : (
-            <Link href="/login" className="btn-primary" onClick={() => setIsMobileMenuOpen(false)} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.45rem',
-              padding: '0.65rem 1.2rem',
-              fontSize: '0.95rem',
-              textDecoration: 'none',
-              textAlign: 'center',
-              boxShadow: 'none',
-              width: '100%'
-            }}>
-              <LogIn size={18} />
-              Log in
-            </Link>
+            <>
+              <Link 
+                href="/settings" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="nav-action-link"
+                style={{ 
+                  color: pathname === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  marginBottom: '1.25rem'
+                }}
+              >
+                <Settings size={18} />
+                Settings
+              </Link>
+              <Link href="/login" className="btn-primary" onClick={() => setIsMobileMenuOpen(false)} style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                padding: '0.65rem 1.2rem',
+                fontSize: '0.95rem',
+                textDecoration: 'none',
+                textAlign: 'center',
+                boxShadow: 'none',
+                width: '100%'
+              }}>
+                <LogIn size={18} />
+                Log in
+              </Link>
+            </>
           )}
         </div>
       </div>

@@ -259,7 +259,7 @@ export default function HomePage() {
         {/* 4. AUDIENCES (TRANSFORMATIVE IMPACT SECTION) */}
         <section className="landing-section" style={{ padding: '3.5rem 0' }}>
           <div className="landing-section-heading" style={{ margin: '0 auto', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            <h2 style={{ fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
               Built for Every Phase of Research Review
             </h2>
           </div>
@@ -312,7 +312,7 @@ export default function HomePage() {
         {/* 5. CAPABILITIES (FRAMEWORKS AND EXPERTISE) */}
         <section className="landing-section" style={{ padding: '3.5rem 0' }}>
           <div className="landing-section-heading" style={{ margin: '0 auto 2.5rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '1.5rem' }}>
+            <h2 style={{ fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '1.5rem' }}>
               Verification Capabilities & Frameworks
             </h2>
             
@@ -392,7 +392,7 @@ export default function HomePage() {
         <section className="landing-section" style={{ padding: '3.5rem 0' }}>
           <div className="home-unleash-grid">
             <div>
-              <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.15 }}>
+              <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.04em', lineHeight: 1.15 }}>
                 Unleash the power of agentic AI to audit scientific paper <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>integrity structures in real-time.</span>
               </h2>
             </div>
@@ -418,7 +418,7 @@ export default function HomePage() {
         {/* 8. PIPELINE (ONBOARDING & PIPELINE SECTION) */}
         <section className="landing-section" style={{ padding: '4rem 0' }}>
           <div className="landing-section-heading" style={{ margin: '0 auto 3rem', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
+            <h2 style={{ fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
               Traceable, Automated Document Screening
             </h2>
             <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
