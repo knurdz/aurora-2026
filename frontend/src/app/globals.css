@@ -3683,6 +3683,11 @@ main {
 .twisty-project-title-group strong {
   font-size: 0.95rem;
   color: var(--text-primary);
+  max-width: 160px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .twisty-project-title-group span {
@@ -4996,6 +5001,18 @@ main {
     padding: 1.5rem 1rem 3rem 1rem !important;
     gap: 1.5rem !important;
   }
+  .dashboard-card-panel {
+    padding: 1.25rem !important;
+  }
+  .settings-panel-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    padding: 1.25rem !important;
+  }
+  .settings-panel-footer span {
+    text-align: center !important;
+  }
   .twisty-subnav {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -5147,6 +5164,48 @@ main {
   }
   .btn-run-audit,
   .btn-trash {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .twisty-project-title-group strong {
+    max-width: 100px !important;
+  }
+  .twisty-progress-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+  }
+  .recent-analysis-row-link {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto auto !important;
+    row-gap: 0.4rem !important;
+    column-gap: 1rem !important;
+    align-items: center !important;
+  }
+  .recent-analysis-row-link > div:nth-child(1) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+  .recent-analysis-row-link > span:nth-child(2) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+  .recent-analysis-row-link > div:nth-child(3) {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+  }
+  .recent-analysis-row-link > div:nth-child(4) {
+    grid-column: 2 !important;
+    grid-row: 1 / span 3 !important;
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    height: 100% !important;
+  }
+  .settings-save-btn,
+  .settings-delete-btn {
     width: 100% !important;
     justify-content: center !important;
   }

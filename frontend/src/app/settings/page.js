@@ -327,7 +327,7 @@ function SettingsContent() {
                   <button 
                     onClick={handleSaveAiSettings}
                     disabled={saving} 
-                    className="btn-primary" 
+                    className="btn-primary settings-save-btn" 
                     style={{ borderRadius: '999px', padding: '0.6rem 1.75rem', fontSize: '0.88rem' }}
                   >
                     {saving ? 'Saving...' : 'Save Configuration'}
@@ -407,6 +407,7 @@ function SettingsContent() {
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirm !== 'DELETE' || deleting}
+                  className="settings-delete-btn"
                   style={deleteButtonStyle(deleteConfirm === 'DELETE' && !deleting)}
                 >
                   <Trash2 size={15} />

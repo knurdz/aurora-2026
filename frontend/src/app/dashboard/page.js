@@ -603,7 +603,7 @@ function DashboardContent() {
                                   {index % 2 === 0 ? <FileScan size={18} /> : <Network size={18} />}
                                 </div>
                                 <div>
-                                  <strong style={{ maxWidth: '160px', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <strong>
                                     {analysis.filename || 'Untitled document'}
                                   </strong>
                                   <span>{analysis.source || 'REST API'}</span>
@@ -696,7 +696,7 @@ function DashboardContent() {
             {activeView === 'Audits' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {/* Upload drag-and-drop workspace */}
-                <div className="dashboard-card-panel" style={{ padding: '2.5rem', textAlign: 'center', background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15,23,42,0.06)' }}>
+                <div className="dashboard-card-panel" style={{ textAlign: 'center', background: '#ffffff', borderRadius: '24px', border: '1px solid rgba(15,23,42,0.06)' }}>
                   <div style={{ maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
                     <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
                       <FileScan size={32} />
